@@ -13,7 +13,17 @@ export async function handler(event: any) {
       return error(400, 'You must be part of a household to set preferences');
     }
 
-    const { cuisines, cookingTime, mealsToInclude, budget } = body;
+    const {
+      cuisines,
+      cookingTime,
+      mealsToInclude,
+      budget,
+      typicalBreakfast,
+      typicalLunch,
+      typicalDinner,
+      typicalSnacks,
+      mealSuggestionMode
+    } = body;
 
     // Get existing preferences
     const existing = await docClient.send(new GetCommand({
@@ -33,6 +43,11 @@ export async function handler(event: any) {
         cookingTime: cookingTime ?? existing.Item?.cookingTime ?? 'medium',
         mealsToInclude: mealsToInclude ?? existing.Item?.mealsToInclude ?? ['breakfast', 'lunch', 'dinner'],
         budget: budget ?? existing.Item?.budget ?? 'medium',
+        typicalBreakfast: typicalBreakfast ?? existing.Item?.typicalBreakfast ?? [],
+        typicalLunch: typicalLunch ?? existing.Item?.typicalLunch ?? [],
+        typicalDinner: typicalDinner ?? existing.Item?.typicalDinner ?? [],
+        typicalSnacks: typicalSnacks ?? existing.Item?.typicalSnacks ?? [],
+        mealSuggestionMode: mealSuggestionMode ?? existing.Item?.mealSuggestionMode ?? 'ai_and_user',
         updatedBy: userId,
         updatedAt: new Date().toISOString(),
       },

@@ -36,6 +36,11 @@ export const userApi = {
     cookingTime?: 'quick' | 'medium' | 'elaborate';
     mealsToInclude?: string[];
     budget?: 'low' | 'medium' | 'high';
+    typicalBreakfast?: string[];
+    typicalLunch?: string[];
+    typicalDinner?: string[];
+    typicalSnacks?: string[];
+    mealSuggestionMode?: 'user_preference' | 'ai_suggest' | 'ai_and_user';
   }) => apiRequest('PUT', '/users/preferences', data),
 };
 

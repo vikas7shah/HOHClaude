@@ -27,6 +27,11 @@ export async function handler(event: any) {
           cookingTime: 'medium',
           mealsToInclude: ['breakfast', 'lunch', 'dinner'],
           budget: 'medium',
+          typicalBreakfast: [],
+          typicalLunch: [],
+          typicalDinner: [],
+          typicalSnacks: [],
+          mealSuggestionMode: 'ai_and_user',
         },
       });
     }
@@ -37,6 +42,11 @@ export async function handler(event: any) {
         cookingTime: result.Item.cookingTime || 'medium',
         mealsToInclude: result.Item.mealsToInclude || ['breakfast', 'lunch', 'dinner'],
         budget: result.Item.budget || 'medium',
+        typicalBreakfast: result.Item.typicalBreakfast || [],
+        typicalLunch: result.Item.typicalLunch || [],
+        typicalDinner: result.Item.typicalDinner || [],
+        typicalSnacks: result.Item.typicalSnacks || [],
+        mealSuggestionMode: result.Item.mealSuggestionMode || 'ai_and_user',
       },
     });
   } catch (err) {

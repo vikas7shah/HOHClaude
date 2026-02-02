@@ -89,12 +89,43 @@ export async function searchRecipes(query: string, diet?: string, excludeIngredi
   if (excludeIngredients) params.append('excludeIngredients', excludeIngredients);
 
   const response = await fetch(`${SPOONACULAR_BASE_URL}/recipes/complexSearch?${params}`);
-  
+
   if (!response.ok) {
     throw new Error(`Spoonacular API error: ${response.status}`);
   }
 
   return response.json();
+}
+
+// Search for recipes based on user's typical meals with full recipe info
+export async function searchRecipesWithInfo(
+  query: string,
+  options?: {
+    diet?: string;
+    excludeIngredients?: string;
+    type?: 'breakfast' | 'main course' | 'snack';
+    number?: number;
+  }
+): Promise<any[]> {
+  const params = new URLSearchParams({
+    apiKey: API_KEY!,
+    query,
+    number: (options?.number || 5).toString(),
+    addRecipeInformation: 'true',
+  });
+
+  if (options?.diet) params.append('diet', options.diet);
+  if (options?.excludeIngredients) params.append('excludeIngredients', options.excludeIngredients);
+  if (options?.type) params.append('type', options.type);
+
+  const response = await fetch(`${SPOONACULAR_BASE_URL}/recipes/complexSearch?${params}`);
+
+  if (!response.ok) {
+    throw new Error(`Spoonacular API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.results || [];
 }
 
 // Convert dietary restrictions to Spoonacular diet parameter

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { RefreshCw, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import { RefreshCw, ChevronLeft, ChevronRight, ExternalLink, User, Sparkles } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { mealsApi } from '../lib/api';
@@ -14,10 +14,12 @@ interface Meal {
   mealType: string;
   recipeId: string;
   recipeName: string;
-  recipeImage: string;
-  readyInMinutes: number;
-  servings: number;
-  sourceUrl: string;
+  recipeImage: string | null;
+  readyInMinutes: number | null;
+  servings: number | null;
+  sourceUrl: string | null;
+  source?: 'user_preference' | 'ai_suggest';
+  isUserMeal?: boolean;
 }
 
 export function MealPlan() {
@@ -129,25 +131,38 @@ export function MealPlan() {
                       const meal = getMeal(dayIndex, mealType);
                       const date = addDays(weekStart, dayIndex);
                       const isToday = formatDate(date) === formatDate(new Date());
+                      const isUserMeal = meal?.isUserMeal || meal?.source === 'user_preference';
                       return (
-                        <td 
-                          key={dayIndex} 
+                        <td
+                          key={dayIndex}
                           className={`p-2 border-l ${isToday ? 'bg-primary/5' : ''}`}
                         >
                           {meal ? (
                             <button
                               onClick={() => setSelectedMeal(meal)}
-                              className="w-full text-left p-2 rounded-md hover:bg-accent transition-colors"
+                              className={`w-full text-left p-2 rounded-md hover:bg-accent transition-colors ${
+                                isUserMeal ? 'border-2 border-dashed border-primary/30' : ''
+                              }`}
                             >
-                              {meal.recipeImage && (
+                              {meal.recipeImage ? (
                                 <img
                                   src={meal.recipeImage}
                                   alt={meal.recipeName}
                                   className="w-full h-20 object-cover rounded mb-2"
                                 />
+                              ) : (
+                                <div className="w-full h-20 bg-gradient-to-br from-primary/10 to-primary/5 rounded mb-2 flex items-center justify-center">
+                                  <User className="h-8 w-8 text-primary/40" />
+                                </div>
                               )}
                               <p className="text-sm font-medium line-clamp-2">{meal.recipeName}</p>
-                              <p className="text-xs text-muted-foreground">{meal.readyInMinutes} min</p>
+                              {meal.readyInMinutes ? (
+                                <p className="text-xs text-muted-foreground">{meal.readyInMinutes} min</p>
+                              ) : isUserMeal ? (
+                                <p className="text-xs text-primary/60 flex items-center gap-1">
+                                  <User className="h-3 w-3" /> Your meal
+                                </p>
+                              ) : null}
                             </button>
                           ) : (
                             <div className="h-28 flex items-center justify-center text-muted-foreground text-xs">
@@ -167,32 +182,64 @@ export function MealPlan() {
 
       {/* Recipe Detail Modal */}
       {selectedMeal && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
           onClick={() => setSelectedMeal(null)}
         >
           <Card className="max-w-md w-full" onClick={e => e.stopPropagation()}>
             <CardHeader>
-              <CardTitle>{selectedMeal.recipeName}</CardTitle>
+              <div className="flex items-center gap-2">
+                {selectedMeal.isUserMeal || selectedMeal.source === 'user_preference' ? (
+                  <span className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full flex items-center gap-1">
+                    <User className="h-3 w-3" /> Your Preference
+                  </span>
+                ) : (
+                  <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full flex items-center gap-1">
+                    <Sparkles className="h-3 w-3" /> AI Suggested
+                  </span>
+                )}
+              </div>
+              <CardTitle className="mt-2">{selectedMeal.recipeName}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {selectedMeal.recipeImage && (
+              {selectedMeal.recipeImage ? (
                 <img
                   src={selectedMeal.recipeImage}
                   alt={selectedMeal.recipeName}
                   className="w-full h-48 object-cover rounded-lg"
                 />
+              ) : (
+                <div className="w-full h-48 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg flex items-center justify-center">
+                  <div className="text-center">
+                    <User className="h-16 w-16 text-primary/30 mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">Your saved meal</p>
+                  </div>
+                </div>
               )}
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">Cook Time</p>
-                  <p className="font-medium">{selectedMeal.readyInMinutes} minutes</p>
+
+              {(selectedMeal.readyInMinutes || selectedMeal.servings) && (
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  {selectedMeal.readyInMinutes && (
+                    <div>
+                      <p className="text-muted-foreground">Cook Time</p>
+                      <p className="font-medium">{selectedMeal.readyInMinutes} minutes</p>
+                    </div>
+                  )}
+                  {selectedMeal.servings && (
+                    <div>
+                      <p className="text-muted-foreground">Servings</p>
+                      <p className="font-medium">{selectedMeal.servings}</p>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <p className="text-muted-foreground">Servings</p>
-                  <p className="font-medium">{selectedMeal.servings}</p>
-                </div>
-              </div>
+              )}
+
+              {selectedMeal.isUserMeal && (
+                <p className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
+                  This is one of your typical meals. You can search for recipes online or use your own favorite recipe!
+                </p>
+              )}
+
               <div className="flex gap-2">
                 {selectedMeal.sourceUrl && (
                   <a
