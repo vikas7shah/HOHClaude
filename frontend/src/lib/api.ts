@@ -41,6 +41,7 @@ export const userApi = {
     typicalDinner?: string[];
     typicalSnacks?: string[];
     mealSuggestionMode?: 'user_preference' | 'ai_suggest' | 'ai_and_user';
+    additionalPreferences?: string;
   }) => apiRequest('PUT', '/users/preferences', data),
 };
 
@@ -59,10 +60,12 @@ export const familyApi = {
   getFamily: () => apiRequest('GET', '/family'),
   addMember: (data: {
     name: string;
+    age?: number;
     dietaryRestrictions?: string[];
     allergies?: string[];
     likes?: string[];
     dislikes?: string[];
+    sameAsAdults?: boolean;
   }) => apiRequest('POST', '/family', data),
   deleteMember: (memberId: string) => apiRequest('DELETE', `/family/${memberId}`),
 };

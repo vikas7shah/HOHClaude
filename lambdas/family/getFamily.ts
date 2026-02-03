@@ -24,10 +24,12 @@ export async function handler(event: any) {
     const members = (result.Items || []).map(item => ({
       id: item.SK.replace('MEMBER#', ''),
       name: item.name,
+      age: item.age !== null ? item.age : undefined,
       dietaryRestrictions: item.dietaryRestrictions || [],
       allergies: item.allergies || [],
       likes: item.likes || [],
       dislikes: item.dislikes || [],
+      sameAsAdults: item.sameAsAdults !== undefined ? item.sameAsAdults : true,
     }));
 
     return success({ members });

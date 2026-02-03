@@ -22,7 +22,8 @@ export async function handler(event: any) {
       typicalLunch,
       typicalDinner,
       typicalSnacks,
-      mealSuggestionMode
+      mealSuggestionMode,
+      additionalPreferences
     } = body;
 
     // Get existing preferences
@@ -41,13 +42,14 @@ export async function handler(event: any) {
         SK: 'PREFERENCES',
         cuisines: cuisines ?? existing.Item?.cuisines ?? [],
         cookingTime: cookingTime ?? existing.Item?.cookingTime ?? 'medium',
-        mealsToInclude: mealsToInclude ?? existing.Item?.mealsToInclude ?? ['breakfast', 'lunch', 'dinner'],
+        mealsToInclude: mealsToInclude ?? existing.Item?.mealsToInclude ?? ['breakfast', 'lunch', 'dinner', 'snacks'],
         budget: budget ?? existing.Item?.budget ?? 'medium',
         typicalBreakfast: typicalBreakfast ?? existing.Item?.typicalBreakfast ?? [],
         typicalLunch: typicalLunch ?? existing.Item?.typicalLunch ?? [],
         typicalDinner: typicalDinner ?? existing.Item?.typicalDinner ?? [],
         typicalSnacks: typicalSnacks ?? existing.Item?.typicalSnacks ?? [],
         mealSuggestionMode: mealSuggestionMode ?? existing.Item?.mealSuggestionMode ?? 'ai_and_user',
+        additionalPreferences: additionalPreferences ?? existing.Item?.additionalPreferences ?? '',
         updatedBy: userId,
         updatedAt: new Date().toISOString(),
       },

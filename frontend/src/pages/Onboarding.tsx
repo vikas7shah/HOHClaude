@@ -184,8 +184,10 @@ function StepFamily() {
   const navigate = useNavigate();
   const [members, setMembers] = useState<any[]>([]);
   const [name, setName] = useState('');
+  const [age, setAge] = useState('');
   const [restrictions, setRestrictions] = useState<string[]>([]);
   const [allergies, setAllergies] = useState('');
+  const [sameAsAdults, setSameAsAdults] = useState(true);
   const [saving, setSaving] = useState(false);
 
   // Load existing family members
@@ -205,15 +207,20 @@ function StepFamily() {
     if (!name.trim()) return;
     setSaving(true);
     try {
+      const ageNum = age ? parseInt(age, 10) : undefined;
       const result = await familyApi.addMember({
         name: name.trim(),
+        age: ageNum,
         dietaryRestrictions: restrictions,
         allergies: allergies.split(',').map(a => a.trim()).filter(Boolean),
+        sameAsAdults: sameAsAdults,
       });
       setMembers([...members, result.member]);
       setName('');
+      setAge('');
       setRestrictions([]);
       setAllergies('');
+      setSameAsAdults(true);
     } catch (err) {
       console.error(err);
     } finally {
@@ -241,20 +248,40 @@ function StepFamily() {
             <p className="text-sm font-medium">Added members:</p>
             <div className="flex flex-wrap gap-2">
               {members.map((m, i) => (
-                <span key={i} className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm">
-                  {m.name}
+                <span key={i} className={`px-3 py-1 rounded-full text-sm ${
+                  m.sameAsAdults === false
+                    ? 'bg-purple-100 text-purple-700'
+                    : 'bg-primary/10 text-primary'
+                }`}>
+                  {m.name}{m.age !== undefined && ` (${m.age}y)`}
+                  {m.sameAsAdults === false && ' ★'}
                 </span>
               ))}
             </div>
+            <p className="text-xs text-muted-foreground">★ = different meals</p>
           </div>
         )}
 
-        <Input
-          label="Name"
-          placeholder="e.g., John"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
+        <div className="grid grid-cols-2 gap-4">
+          <Input
+            label="Name"
+            placeholder="e.g., Emma"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <div>
+            <Input
+              label="Age"
+              type="number"
+              min="0"
+              max="120"
+              placeholder="e.g., 2"
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground mt-1">Helps recommend appropriate food</p>
+          </div>
+        </div>
 
         <div>
           <p className="text-sm font-medium mb-2">Dietary Restrictions</p>
@@ -282,7 +309,39 @@ function StepFamily() {
           onChange={(e) => setAllergies(e.target.value)}
         />
 
+        <div>
+          <p className="text-sm font-medium mb-2">Meal Preference</p>
+          <button
+            type="button"
+            onClick={() => setSameAsAdults(!sameAsAdults)}
+            className={`w-full p-4 rounded-lg border text-left transition-colors flex items-center justify-between ${
+              sameAsAdults
+                ? 'bg-green-50 border-green-300'
+                : 'bg-purple-50 border-purple-300'
+            }`}
+          >
+            <div>
+              <p className="font-medium">
+                {sameAsAdults ? 'Eats same food as adults' : 'Needs different meals'}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {sameAsAdults
+                  ? 'Will share the same meals as everyone'
+                  : 'Will have separate, age-appropriate meals'}
+              </p>
+            </div>
+            <div className={`h-6 w-11 rounded-full transition-colors ${
+              sameAsAdults ? 'bg-green-500' : 'bg-purple-500'
+            } relative`}>
+              <div className={`h-5 w-5 bg-white rounded-full absolute top-0.5 transition-transform ${
+                sameAsAdults ? 'left-0.5' : 'left-5'
+              }`} />
+            </div>
+          </button>
+        </div>
+
         <Button onClick={addMember} disabled={!name.trim() || saving} variant="outline" className="w-full">
+          <UserPlus className="h-4 w-4 mr-2" />
           Add Member
         </Button>
 

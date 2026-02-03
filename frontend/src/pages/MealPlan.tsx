@@ -1,12 +1,21 @@
 import { useState, useEffect } from 'react';
-import { RefreshCw, ChevronLeft, ChevronRight, ExternalLink, User, Sparkles } from 'lucide-react';
+import { RefreshCw, ChevronLeft, ChevronRight, ExternalLink, User, Sparkles, AlertCircle, Baby, Users, AlertTriangle } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { mealsApi } from '../lib/api';
+import { mealsApi, userApi, familyApi } from '../lib/api';
 import { formatDate, getWeekStart, addDays } from '../lib/utils';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const MEAL_TYPES = ['breakfast', 'lunch', 'dinner'];
+const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snacks'];
+
+interface FamilyMember {
+  id: string;
+  name: string;
+  age?: number;
+  dietaryRestrictions: string[];
+  allergies: string[];
+  sameAsAdults: boolean;
+}
 
 interface Meal {
   date: string;
@@ -20,6 +29,8 @@ interface Meal {
   sourceUrl: string | null;
   source?: 'user_preference' | 'ai_suggest';
   isUserMeal?: boolean;
+  forMembers?: string[];
+  forMemberId?: string;
 }
 
 export function MealPlan() {
@@ -28,29 +39,58 @@ export function MealPlan() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
+  const [currentPreferenceMode, setCurrentPreferenceMode] = useState<string | null>(null);
+  const [planGeneratedMode, setPlanGeneratedMode] = useState<string | null>(null);
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
 
   const loadPlan = async () => {
     setLoading(true);
     try {
       const data = await mealsApi.getPlan(formatDate(weekStart));
       setMeals(data.plan?.meals || []);
+      setPlanGeneratedMode(data.plan?.mealSuggestionMode || null);
     } catch (err) {
       console.error('Failed to load meal plan:', err);
       setMeals([]);
+      setPlanGeneratedMode(null);
     } finally {
       setLoading(false);
     }
   };
 
+  const loadPreferences = async () => {
+    try {
+      const data = await userApi.getPreferences();
+      setCurrentPreferenceMode(data.preferences?.mealSuggestionMode || 'ai_and_user');
+    } catch (err) {
+      console.error('Failed to load preferences:', err);
+    }
+  };
+
+  const loadFamilyMembers = async () => {
+    try {
+      const data = await familyApi.getFamily();
+      setFamilyMembers(data.members || []);
+    } catch (err) {
+      console.error('Failed to load family members:', err);
+    }
+  };
+
   useEffect(() => {
     loadPlan();
+    loadPreferences();
+    loadFamilyMembers();
   }, [weekStart]);
+
+  // Check if preferences have changed since the plan was generated
+  const preferencesChanged = currentPreferenceMode && planGeneratedMode && currentPreferenceMode !== planGeneratedMode;
 
   const generatePlan = async () => {
     setGenerating(true);
     try {
       const data = await mealsApi.generatePlan(formatDate(weekStart));
       setMeals(data.meals || []);
+      setPlanGeneratedMode(data.mealSuggestionMode || currentPreferenceMode);
     } catch (err) {
       console.error('Failed to generate meal plan:', err);
     } finally {
@@ -58,10 +98,22 @@ export function MealPlan() {
     }
   };
 
-  const getMeal = (dayIndex: number, mealType: string): Meal | undefined => {
-    const date = formatDate(addDays(weekStart, dayIndex));
-    return meals.find(m => m.date === date && m.mealType === mealType);
+  const getModeLabel = (mode: string) => {
+    switch (mode) {
+      case 'user_preference': return 'My Preferences Only';
+      case 'ai_suggest': return 'AI Suggestions';
+      case 'ai_and_user': return 'Mix of Both';
+      default: return mode;
+    }
   };
+
+  const getMeals = (dayIndex: number, mealType: string): Meal[] => {
+    const date = formatDate(addDays(weekStart, dayIndex));
+    return meals.filter(m => m.date === date && m.mealType === mealType);
+  };
+
+  // Check if there are any members with different meals
+  const hasDifferentMeals = familyMembers.some(m => m.sameAsAdults === false);
 
   const prevWeek = () => setWeekStart(addDays(weekStart, -7));
   const nextWeek = () => setWeekStart(addDays(weekStart, 7));
@@ -91,6 +143,99 @@ export function MealPlan() {
           </Button>
         </div>
       </div>
+
+      {/* Preferences Changed Banner */}
+      {preferencesChanged && meals.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0" />
+            <div>
+              <p className="font-medium text-amber-800">Your preferences have changed</p>
+              <p className="text-sm text-amber-700">
+                This plan was generated using "{getModeLabel(planGeneratedMode!)}" but you've switched to "{getModeLabel(currentPreferenceMode!)}".
+              </p>
+            </div>
+          </div>
+          <Button onClick={generatePlan} disabled={generating} size="sm" className="flex-shrink-0 gap-2">
+            <RefreshCw className={`h-4 w-4 ${generating ? 'animate-spin' : ''}`} />
+            Regenerate
+          </Button>
+        </div>
+      )}
+
+      {/* Family Members Summary */}
+      {familyMembers.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Planning meals for {familyMembers.length + 1} people
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="flex flex-wrap gap-3">
+              {/* Household Adults (you) */}
+              <div className="flex items-center gap-2 px-3 py-2 bg-primary/5 rounded-lg border">
+                <User className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">You</span>
+              </div>
+
+              {/* Family Members */}
+              {familyMembers.map((member) => (
+                <div
+                  key={member.id}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${
+                    member.sameAsAdults === false
+                      ? 'bg-purple-50 border-purple-200'
+                      : 'bg-muted/50'
+                  }`}
+                >
+                  <Baby className={`h-4 w-4 ${member.sameAsAdults === false ? 'text-purple-500' : 'text-muted-foreground'}`} />
+                  <span className="text-sm font-medium">
+                    {member.name}
+                    {member.age !== undefined && (
+                      <span className="text-xs text-muted-foreground ml-1">({member.age}y)</span>
+                    )}
+                  </span>
+                  {member.sameAsAdults === false && (
+                    <span className="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded">
+                      ★ Different meals
+                    </span>
+                  )}
+                  {member.allergies.length > 0 && (
+                    <span className="text-xs px-1.5 py-0.5 bg-red-100 text-red-700 rounded flex items-center gap-0.5">
+                      <AlertTriangle className="h-3 w-3" />
+                      {member.allergies.length}
+                    </span>
+                  )}
+                  {member.dietaryRestrictions.length > 0 && (
+                    <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">
+                      {member.dietaryRestrictions.length} restriction{member.dietaryRestrictions.length !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Show dietary notes if any member has restrictions */}
+            {familyMembers.some(m => m.dietaryRestrictions.length > 0 || m.allergies.length > 0) && (
+              <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-sm text-amber-800 flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  <span>
+                    Meal plans consider dietary restrictions and allergies for all family members.
+                    {familyMembers.filter(m => m.allergies.length > 0).map(m => (
+                      <span key={m.id} className="block mt-1">
+                        <strong>{m.name}</strong>: Allergic to {m.allergies.join(', ')}
+                      </span>
+                    ))}
+                  </span>
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Calendar Grid */}
       <Card>
@@ -128,42 +273,73 @@ export function MealPlan() {
                       {mealType}
                     </td>
                     {DAYS.map((_, dayIndex) => {
-                      const meal = getMeal(dayIndex, mealType);
+                      const dayMeals = getMeals(dayIndex, mealType);
                       const date = addDays(weekStart, dayIndex);
                       const isToday = formatDate(date) === formatDate(new Date());
-                      const isUserMeal = meal?.isUserMeal || meal?.source === 'user_preference';
                       return (
                         <td
                           key={dayIndex}
                           className={`p-2 border-l ${isToday ? 'bg-primary/5' : ''}`}
                         >
-                          {meal ? (
-                            <button
-                              onClick={() => setSelectedMeal(meal)}
-                              className={`w-full text-left p-2 rounded-md hover:bg-accent transition-colors ${
-                                isUserMeal ? 'border-2 border-dashed border-primary/30' : ''
-                              }`}
-                            >
-                              {meal.recipeImage ? (
-                                <img
-                                  src={meal.recipeImage}
-                                  alt={meal.recipeName}
-                                  className="w-full h-20 object-cover rounded mb-2"
-                                />
-                              ) : (
-                                <div className="w-full h-20 bg-gradient-to-br from-primary/10 to-primary/5 rounded mb-2 flex items-center justify-center">
-                                  <User className="h-8 w-8 text-primary/40" />
-                                </div>
-                              )}
-                              <p className="text-sm font-medium line-clamp-2">{meal.recipeName}</p>
-                              {meal.readyInMinutes ? (
-                                <p className="text-xs text-muted-foreground">{meal.readyInMinutes} min</p>
-                              ) : isUserMeal ? (
-                                <p className="text-xs text-primary/60 flex items-center gap-1">
-                                  <User className="h-3 w-3" /> Your meal
-                                </p>
-                              ) : null}
-                            </button>
+                          {dayMeals.length > 0 ? (
+                            <div className="space-y-2">
+                              {dayMeals.map((meal, mealIdx) => {
+                                const isUserMeal = meal.isUserMeal || meal.source === 'user_preference';
+                                const isKidMeal = meal.forMemberId != null;
+                                return (
+                                  <button
+                                    key={mealIdx}
+                                    onClick={() => setSelectedMeal(meal)}
+                                    className={`w-full text-left p-2 rounded-md hover:bg-accent transition-colors ${
+                                      isUserMeal ? 'border-2 border-dashed border-primary/30' : ''
+                                    } ${isKidMeal ? 'border-2 border-purple-200 bg-purple-50/50' : ''}`}
+                                  >
+                                    {/* Show who this meal is for */}
+                                    {meal.forMembers && hasDifferentMeals && (
+                                      <div className="mb-1">
+                                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                                          isKidMeal
+                                            ? 'bg-purple-100 text-purple-700'
+                                            : 'bg-green-100 text-green-700'
+                                        }`}>
+                                          {meal.forMembers.length === 1
+                                            ? meal.forMembers[0]
+                                            : meal.forMembers.includes('Adults')
+                                              ? `Adults${meal.forMembers.length > 1 ? ` +${meal.forMembers.length - 1}` : ''}`
+                                              : meal.forMembers.join(', ')
+                                          }
+                                        </span>
+                                      </div>
+                                    )}
+                                    {meal.recipeImage ? (
+                                      <img
+                                        src={meal.recipeImage}
+                                        alt={meal.recipeName}
+                                        className={`w-full object-cover rounded mb-2 ${
+                                          dayMeals.length > 1 ? 'h-14' : 'h-20'
+                                        }`}
+                                      />
+                                    ) : (
+                                      <div className={`w-full bg-gradient-to-br from-primary/10 to-primary/5 rounded mb-2 flex items-center justify-center ${
+                                        dayMeals.length > 1 ? 'h-14' : 'h-20'
+                                      }`}>
+                                        <User className={`text-primary/40 ${dayMeals.length > 1 ? 'h-6 w-6' : 'h-8 w-8'}`} />
+                                      </div>
+                                    )}
+                                    <p className={`font-medium line-clamp-2 ${
+                                      dayMeals.length > 1 ? 'text-xs' : 'text-sm'
+                                    }`}>{meal.recipeName}</p>
+                                    {meal.readyInMinutes ? (
+                                      <p className="text-xs text-muted-foreground">{meal.readyInMinutes} min</p>
+                                    ) : isUserMeal && !isKidMeal ? (
+                                      <p className="text-xs text-primary/60 flex items-center gap-1">
+                                        <User className="h-3 w-3" /> Your meal
+                                      </p>
+                                    ) : null}
+                                  </button>
+                                );
+                              })}
+                            </div>
                           ) : (
                             <div className="h-28 flex items-center justify-center text-muted-foreground text-xs">
                               —
@@ -188,7 +364,7 @@ export function MealPlan() {
         >
           <Card className="max-w-md w-full" onClick={e => e.stopPropagation()}>
             <CardHeader>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 {selectedMeal.isUserMeal || selectedMeal.source === 'user_preference' ? (
                   <span className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full flex items-center gap-1">
                     <User className="h-3 w-3" /> Your Preference
@@ -196,6 +372,16 @@ export function MealPlan() {
                 ) : (
                   <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full flex items-center gap-1">
                     <Sparkles className="h-3 w-3" /> AI Suggested
+                  </span>
+                )}
+                {selectedMeal.forMembers && (
+                  <span className={`px-2 py-1 text-xs rounded-full flex items-center gap-1 ${
+                    selectedMeal.forMemberId
+                      ? 'bg-purple-100 text-purple-700'
+                      : 'bg-green-100 text-green-700'
+                  }`}>
+                    <Users className="h-3 w-3" />
+                    {selectedMeal.forMembers.join(', ')}
                   </span>
                 )}
               </div>

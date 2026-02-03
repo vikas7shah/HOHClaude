@@ -33,6 +33,7 @@ export async function handler(event: any) {
           endDate: result.Item.endDate,
           meals: result.Item.meals,
           generatedAt: result.Item.generatedAt,
+          mealSuggestionMode: result.Item.mealSuggestionMode,
         },
       });
     }
@@ -60,6 +61,7 @@ export async function handler(event: any) {
         endDate: plan.endDate,
         meals: plan.meals,
         generatedAt: plan.generatedAt,
+        mealSuggestionMode: plan.mealSuggestionMode,
       },
     });
   } catch (err) {
