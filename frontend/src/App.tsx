@@ -65,7 +65,7 @@ export default function App() {
         },
       }}
     >
-      {({ signOut, user }) => (
+      {() => (
         <AuthenticatedApp />
       )}
     </Authenticator>

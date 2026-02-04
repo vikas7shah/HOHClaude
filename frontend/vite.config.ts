@@ -4,6 +4,7 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  base: '/app/', // Serve from /app/ path on S3
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

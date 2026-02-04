@@ -1,28 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { CalendarDays, ChefHat, Users, ShoppingCart, UserPlus, Sparkles, Clock, Heart, Zap } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { CalendarDays, ChefHat, Users, ShoppingCart, UserPlus } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { mealsApi, familyApi, householdApi } from '../lib/api';
 import { useProfile } from '../hooks/useProfile';
-import { getWeekStart, formatDate } from '../lib/utils';
-
-const MOOD_OPTIONS = [
-  { value: 'quick', label: 'Quick & Easy', icon: Zap, description: 'Under 30 minutes' },
-  { value: 'comfort', label: 'Comfort Food', icon: Heart, description: 'Hearty & satisfying' },
-  { value: 'healthy', label: 'Healthy', icon: Sparkles, description: 'Light & nutritious' },
-  { value: 'elaborate', label: 'Something Special', icon: Clock, description: 'Worth the effort' },
-];
 
 export function Dashboard() {
-  const navigate = useNavigate();
   const { profile, household } = useProfile();
   const [mealPlan, setMealPlan] = useState<any>(null);
   const [familyCount, setFamilyCount] = useState(0);
   const [userCount, setUserCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
-  const [selectedMood, setSelectedMood] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -43,20 +32,6 @@ export function Dashboard() {
     }
     loadData();
   }, []);
-
-  const handleGeneratePlan = async () => {
-    setGenerating(true);
-    try {
-      const startDate = formatDate(getWeekStart());
-      const data = await mealsApi.generatePlan(startDate);
-      setMealPlan({ meals: data.meals, startDate: data.startDate, endDate: data.endDate });
-      setSelectedMood(null);
-    } catch (err) {
-      console.error('Failed to generate plan:', err);
-    } finally {
-      setGenerating(false);
-    }
-  };
 
   const today = new Date().toISOString().split('T')[0];
   const todayMeals = mealPlan?.meals?.filter((m: any) => m.date === today) || [];
