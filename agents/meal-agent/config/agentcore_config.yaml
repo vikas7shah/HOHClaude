@@ -1,0 +1,80 @@
+# HOH Meal Agent - Bedrock AgentCore Configuration
+# This configuration is used for deploying the agent to AgentCore Runtime
+
+agent:
+  name: hoh-meal-agent
+  description: "HOH Meal Planning Assistant - AI agent for personalized meal recommendations"
+  version: "1.0.0"
+
+runtime:
+  # Runtime configuration for AgentCore
+  type: python
+  python_version: "3.10"
+  entry_point: "handler.handler"
+  timeout_seconds: 300
+  memory_size_mb: 512
+
+model:
+  # Model configuration
+  provider: bedrock
+  model_id: anthropic.claude-sonnet-4-20250514
+  region: us-east-1
+
+memory:
+  # AgentCore Memory configuration
+  enabled: true
+  name: HOHMealAgentMemory
+  description: "Memory for HOH Meal Planning Agent"
+  strategies:
+    - type: session_summary
+      description: "Summarize conversation sessions"
+    - type: user_preference
+      description: "Learn and remember user meal preferences"
+    - type: semantic
+      description: "Extract and store facts about family food preferences"
+
+observability:
+  # Tracing and logging configuration
+  tracing_enabled: true
+  log_level: INFO
+  metrics_enabled: true
+
+environment:
+  # Environment variables (secrets should be in AWS Secrets Manager)
+  variables:
+    - name: USERS_TABLE
+      value: hoh-users-2026
+    - name: MEAL_PLANS_TABLE
+      value: hoh-meal-plans-2026
+    - name: AWS_REGION
+      value: us-east-1
+  secrets:
+    - name: SPOONACULAR_API_KEY
+      secret_arn: "arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:hoh/spoonacular-api-key"
+
+iam:
+  # IAM permissions required by the agent
+  managed_policies:
+    - arn:aws:iam::aws:policy/AmazonDynamoDBReadOnlyAccess
+  inline_policies:
+    - name: DynamoDBMealPlansWrite
+      statements:
+        - effect: Allow
+          actions:
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+          resources:
+            - "arn:aws:dynamodb:*:*:table/hoh-meal-plans-*"
+    - name: BedrockInvoke
+      statements:
+        - effect: Allow
+          actions:
+            - bedrock:InvokeModel
+            - bedrock:InvokeModelWithResponseStream
+          resources:
+            - "arn:aws:bedrock:*::foundation-model/anthropic.*"
+
+tags:
+  project: HOH
+  component: meal-agent
+  environment: production

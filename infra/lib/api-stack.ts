@@ -178,6 +178,44 @@ export class ApiStack extends cdk.Stack {
     usersTable.grantReadData(getPlanFn);
     mealPlansTable.grantReadData(getPlanFn);
 
+    // ============ AI AGENT ENDPOINT ============
+
+    // Meal Agent - Python Lambda with Strands SDK
+    // Note: Requires pre-bundled deployment package at lambdas/agent/deployment.zip
+    // Build with: cd lambdas/agent && pip install -r requirements.txt -t package &&
+    //             cp -r *.py tools package/ && cd package && zip -r ../deployment.zip .
+    const mealAgentFn = new lambda.Function(this, 'MealAgentFn', {
+      runtime: lambda.Runtime.PYTHON_3_11,
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/agent/package')),
+      handler: 'meal_agent_handler.handler',
+      timeout: cdk.Duration.seconds(120), // Agent needs more time
+      memorySize: 1024, // More memory for ML workloads
+      environment: {
+        USERS_TABLE: usersTable.tableName,
+        MEAL_PLANS_TABLE: mealPlansTable.tableName,
+        SPOONACULAR_API_KEY: process.env.SPOONACULAR_API_KEY || '',
+        MODEL_ID: 'us.anthropic.claude-sonnet-4-5-20250929-v1:0',
+        LOG_LEVEL: 'INFO',
+      },
+    });
+
+    // Grant DynamoDB access
+    usersTable.grantReadWriteData(mealAgentFn);
+    mealPlansTable.grantReadWriteData(mealAgentFn);
+
+    // Grant Bedrock access for Claude model
+    mealAgentFn.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        'bedrock:InvokeModel',
+        'bedrock:InvokeModelWithResponseStream',
+      ],
+      resources: [
+        'arn:aws:bedrock:*::foundation-model/anthropic.*',
+        'arn:aws:bedrock:*:*:inference-profile/*',
+      ],
+    }));
+
     // ============ ROUTE SETUP ============
 
     // /users
@@ -223,6 +261,11 @@ export class ApiStack extends cdk.Stack {
 
     const planResource = mealsResource.addResource('plan');
     planResource.addMethod('GET', new apigateway.LambdaIntegration(getPlanFn), authMethodOptions);
+
+    // /agent
+    const agentResource = this.api.root.addResource('agent');
+    const chatResource = agentResource.addResource('chat');
+    chatResource.addMethod('POST', new apigateway.LambdaIntegration(mealAgentFn), authMethodOptions);
 
     // ============ OUTPUTS ============
 

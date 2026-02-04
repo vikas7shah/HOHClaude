@@ -66,6 +66,11 @@ export const familyApi = {
     likes?: string[];
     dislikes?: string[];
     sameAsAdults?: boolean;
+    mealPreferences?: {
+      breakfast: string[];
+      lunch: string[];
+      dinner: string[];
+    };
   }) => apiRequest('POST', '/family', data),
   deleteMember: (memberId: string) => apiRequest('DELETE', `/family/${memberId}`),
 };
@@ -73,6 +78,12 @@ export const familyApi = {
 // Meals API
 export const mealsApi = {
   generatePlan: (startDate: string) => apiRequest('POST', '/meals/generate', { startDate }),
-  getPlan: (startDate?: string) => 
+  getPlan: (startDate?: string) =>
     apiRequest('GET', startDate ? `/meals/plan?startDate=${startDate}` : '/meals/plan'),
+};
+
+// Agent API (Strands-based Meal Planning AI)
+export const agentApi = {
+  chat: (message: string): Promise<{ response: string; household_id: string }> =>
+    apiRequest('POST', '/agent/chat', { message }),
 };
