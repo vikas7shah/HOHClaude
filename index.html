@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HOH | Your Home, Handled.</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:wght@400;600;700&display=swap');
+        
+        body { 
+            font-family: 'DM Sans', sans-serif; 
+            background-color: #0D0D0D; 
+            color: #F5F0EB;
+            position: relative;
+        }
+
+        /* Noise texture overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.035;
+            pointer-events: none;
+            z-index: 1000;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+        }
+
+        /* Background gradient layers */
+        .bg-gradient-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .gradient-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+        }
+
+        .gradient-orb-1 {
+            width: 800px;
+            height: 800px;
+            top: -300px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: radial-gradient(circle, rgba(232, 169, 114, 0.12) 0%, transparent 70%);
+        }
+
+        .gradient-orb-2 {
+            width: 600px;
+            height: 600px;
+            top: 40%;
+            left: -200px;
+            background: radial-gradient(circle, rgba(212, 132, 92, 0.08) 0%, transparent 70%);
+        }
+
+        .gradient-orb-3 {
+            width: 500px;
+            height: 500px;
+            top: 60%;
+            right: -150px;
+            background: radial-gradient(circle, rgba(232, 169, 114, 0.06) 0%, transparent 70%);
+        }
+
+        .gradient-orb-4 {
+            width: 700px;
+            height: 700px;
+            bottom: -200px;
+            left: 30%;
+            background: radial-gradient(circle, rgba(245, 208, 169, 0.05) 0%, transparent 70%);
+        }
+
+        .serif { font-family: 'Fraunces', serif; }
+        
+        .shimmer {
+            background: linear-gradient(90deg, #E8A972, #F5D0A9, #E8A972);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 3s linear infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+
+        .hero-glow {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(232, 169, 114, 0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            z-index: -1;
+        }
+
+        .feature-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            background: linear-gradient(135deg, rgba(232, 169, 114, 0.08) 0%, rgba(255,255,255,0.02) 100%);
+            border-color: rgba(232, 169, 114, 0.2);
+        }
+
+        .testimonial-glow {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(232, 169, 114, 0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            z-index: -1;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Section backgrounds with subtle gradients */
+        .section-dark {
+            background: linear-gradient(180deg, #141414 0%, #111111 100%);
+            position: relative;
+        }
+
+        .section-dark::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(ellipse at 50% 0%, rgba(232, 169, 114, 0.03) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        /* Phone mockup styles */
+        .phone-mockup {
+            background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%);
+            border-radius: 40px;
+            padding: 12px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.1);
+        }
+
+        .phone-screen {
+            background: #000;
+            border-radius: 32px;
+            overflow: hidden;
+        }
+
+        .phone-notch {
+            width: 120px;
+            height: 28px;
+            background: #000;
+            border-radius: 0 0 20px 20px;
+            margin: 0 auto;
+        }
+
+        /* SMS bubble animation */
+        .sms-bubble {
+            animation: slideIn 0.5s ease-out forwards;
+            opacity: 0;
+        }
+
+        .sms-bubble:nth-child(1) { animation-delay: 0.3s; }
+        .sms-bubble:nth-child(2) { animation-delay: 0.8s; }
+        .sms-bubble:nth-child(3) { animation-delay: 1.3s; }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Calendar styles */
+        .calendar-day {
+            transition: all 0.2s ease;
+        }
+
+        .calendar-day:hover {
+            background: rgba(232, 169, 114, 0.1);
+            transform: scale(1.02);
+        }
+
+        /* Grocery list checkbox animation */
+        .grocery-item {
+            transition: all 0.3s ease;
+        }
+
+        .grocery-item.checked {
+            opacity: 0.5;
+            text-decoration: line-through;
+        }
+
+        /* Swap animation */
+        .swap-card {
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .swap-card.swapping {
+            transform: translateX(-100%);
+            opacity: 0;
+        }
+
+        .swap-card.new-meal {
+            animation: swapIn 0.5s ease-out forwards;
+        }
+
+        @keyframes swapIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Floating animation for mockups */
+        .float-animation {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body class="overflow-x-hidden">
+
+    <!-- Background gradient layers -->
+    <div class="bg-gradient-layer">
+        <div class="gradient-orb gradient-orb-1"></div>
+        <div class="gradient-orb gradient-orb-2"></div>
+        <div class="gradient-orb gradient-orb-3"></div>
+        <div class="gradient-orb gradient-orb-4"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="max-w-7xl mx-auto px-8 py-8 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-gradient-to-br from-[#E8A972] to-[#D4845C] rounded-lg flex items-center justify-center shadow-lg shadow-orange-900/20">
+                <i data-lucide="home" class="text-black w-6 h-6"></i>
+            </div>
+            <span class="serif text-2xl font-bold tracking-tight">HOH</span>
+        </div>
+        <div class="hidden md:flex gap-8 text-sm font-medium text-slate-400">
+            <a href="#features" class="hover:text-[#E8A972] transition">Features</a>
+            <a href="#how-it-works" class="hover:text-[#E8A972] transition">How It Works</a>
+            <a href="#about" class="hover:text-[#E8A972] transition">About</a>
+        </div>
+        <div class="flex items-center gap-4">
+            <a href="https://app.homeoperationshub.com" class="text-sm font-medium text-slate-400 hover:text-[#E8A972] transition">Login</a>
+            <a href="#signup" class="border border-white/20 px-6 py-2 rounded-full text-sm font-medium hover:bg-white/5 transition">Join Beta</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="relative max-w-7xl mx-auto px-8 pt-20 pb-32 text-center">
+        <div class="hero-glow top-[-200px] left-1/2 -translate-x-1/2"></div>
+        
+        <div class="inline-flex items-center gap-2 bg-orange-400/10 border border-orange-400/30 px-4 py-2 rounded-full mb-8">
+            <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+            <span class="text-xs font-medium text-orange-200 uppercase tracking-widest">Early Access Open</span>
+        </div>
+
+        <h1 class="serif text-5xl md:text-8xl font-bold leading-[1.1] mb-8">
+            Stop the 5:30 PM <br>
+            <span class="shimmer">"What's for dinner?"</span> panic.
+        </h1>
+
+        <p class="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-12 leading-relaxed">
+            HOH is the AI that carries the invisible work of running your home. It learns your household's preferences, coordinates your family, and plans your meals—so you can stop managing and start living.
+        </p>
+
+        <form id="signup" class="max-w-md mx-auto flex flex-col md:flex-row gap-3" onsubmit="submitEmail(event, this)">
+            <input type="email" name="email" placeholder="Enter your email" required 
+                class="flex-1 bg-white/5 border border-white/10 px-6 py-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E8A972]/50">
+            <button type="submit" class="bg-gradient-to-r from-[#E8A972] to-[#D4845C] text-black px-8 py-4 rounded-xl font-bold hover:scale-105 transition-transform">
+                Get Early Access
+            </button>
+        </form>
+        
+        <div class="mt-8 flex items-center justify-center gap-4 text-slate-500 text-sm">
+            <div class="flex -space-x-2">
+                <div class="w-8 h-8 rounded-full bg-slate-800 border-2 border-black flex items-center justify-center">👩</div>
+                <div class="w-8 h-8 rounded-full bg-slate-800 border-2 border-black flex items-center justify-center">👨</div>
+                <div class="w-8 h-8 rounded-full bg-slate-800 border-2 border-black flex items-center justify-center">🧒</div>
+            </div>
+            <span>Join the founding families</span>
+        </div>
+    </header>
+
+    <!-- The Problem Section -->
+    <section class="section-dark py-24 border-y border-white/5">
+        <div class="max-w-5xl mx-auto px-8">
+            <div class="grid md:grid-cols-2 gap-16 items-center">
+                <div>
+                    <h2 class="serif text-4xl font-bold mb-6 italic text-[#E8A972]">You aren't tired of cooking. <br>You're tired of deciding.</h2>
+                    <p class="text-slate-400 leading-relaxed mb-6">
+                        Every household has an "Invisible Operator"—the person carrying the mental load of meals, groceries, and cleaning. It's exhausting, thankless, and never done.
+                    </p>
+                    <ul class="space-y-4">
+                        <li class="flex gap-3 items-start text-sm">
+                            <i data-lucide="check-circle-2" class="text-[#E8A972] w-5 h-5 shrink-0"></i>
+                            <span><b>Decision Fatigue:</b> No more choosing between 21 meals a week.</span>
+                        </li>
+                        <li class="flex gap-3 items-start text-sm">
+                            <i data-lucide="check-circle-2" class="text-[#E8A972] w-5 h-5 shrink-0"></i>
+                            <span><b>Coordination Chaos:</b> No more "what should I make?" or "I thought you were cooking."</span>
+                        </li>
+                        <li class="flex gap-3 items-start text-sm">
+                            <i data-lucide="check-circle-2" class="text-[#E8A972] w-5 h-5 shrink-0"></i>
+                            <span><b>Food Waste:</b> HOH knows what's in your fridge before you do.</span>
+                        </li>
+                        <li class="flex gap-3 items-start text-sm">
+                            <i data-lucide="check-circle-2" class="text-[#E8A972] w-5 h-5 shrink-0"></i>
+                            <span><b>Family Chaos:</b> Everyone's preferences, allergies, and schedules—handled.</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="bg-gradient-to-br from-[#E8A972]/10 to-transparent p-8 rounded-3xl border border-white/5">
+                    <div class="space-y-4">
+                        <div class="bg-black/40 p-4 rounded-xl border border-white/5">
+                            <p class="text-xs text-[#E8A972] font-bold uppercase tracking-tighter mb-1">AI Suggestion</p>
+                            <p class="text-sm italic">"I noticed soccer practice is at 6 PM. I've swapped tonight's dinner for a 15-min 'Build-Your-Own Taco' bowl. Mark is already briefed on prep."</p>
+                        </div>
+                        <div class="bg-white/5 p-4 rounded-xl">
+                            <p class="text-xs text-slate-500 font-bold uppercase tracking-tighter mb-1">Pantry Alert</p>
+                            <p class="text-sm">"Running low on milk and Mia's dairy-free yogurt. Added to the list."</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section id="how-it-works" class="py-24">
+        <div class="max-w-6xl mx-auto px-8">
+            <div class="text-center mb-16">
+                <h2 class="serif text-4xl md:text-5xl font-bold mb-4">Tell us once. We remember forever.</h2>
+                <p class="text-slate-400 text-lg max-w-2xl mx-auto">HOH learns how your household actually works—then adapts every plan to fit your reality.</p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-6">
+                <!-- Step 1 -->
+                <div class="feature-card p-8 rounded-2xl border border-white/5">
+                    <div class="w-12 h-12 bg-[#E8A972]/20 rounded-xl flex items-center justify-center mb-6">
+                        <i data-lucide="users" class="text-[#E8A972] w-6 h-6"></i>
+                    </div>
+                    <div class="text-xs text-[#E8A972] font-bold uppercase tracking-wider mb-2">Step 1</div>
+                    <h3 class="serif text-xl font-bold mb-3">Build your household profile</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">Add family members, dietary needs, picky eaters, allergies. "Jake won't eat anything green. Emma is dairy-free. Tuesdays are chaos."</p>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="feature-card p-8 rounded-2xl border border-white/5">
+                    <div class="w-12 h-12 bg-[#E8A972]/20 rounded-xl flex items-center justify-center mb-6">
+                        <i data-lucide="brain" class="text-[#E8A972] w-6 h-6"></i>
+                    </div>
+                    <div class="text-xs text-[#E8A972] font-bold uppercase tracking-wider mb-2">Step 2</div>
+                    <h3 class="serif text-xl font-bold mb-3">HOH learns & plans</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">Get a personalized weekly meal plan that actually works. Quick meals on busy nights, family favorites on weekends, nothing anyone will refuse to eat.</p>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="feature-card p-8 rounded-2xl border border-white/5">
+                    <div class="w-12 h-12 bg-[#E8A972]/20 rounded-xl flex items-center justify-center mb-6">
+                        <i data-lucide="refresh-cw" class="text-[#E8A972] w-6 h-6"></i>
+                    </div>
+                    <div class="text-xs text-[#E8A972] font-bold uppercase tracking-wider mb-2">Step 3</div>
+                    <h3 class="serif text-xl font-bold mb-3">Life happens? HOH adapts.</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">Say "I'm exhausted" or "guests coming Friday" and watch the plan reshape itself. Your partner gets notified. The grocery list updates.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="section-dark py-24 border-y border-white/5">
+        <div class="max-w-6xl mx-auto px-8">
+            <div class="text-center mb-16">
+                <h2 class="serif text-4xl md:text-5xl font-bold mb-4">The single source of truth your household trusts.</h2>
+                <p class="text-slate-400 text-lg max-w-2xl mx-auto">Not another recipe app. A house brain that coordinates everything.</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Feature 1: Pantry Tracking -->
+                <div class="feature-card p-8 rounded-2xl border border-white/5">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-[#E8A972]/20 rounded-xl flex items-center justify-center shrink-0">
+                            <i data-lucide="refrigerator" class="text-[#E8A972] w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h3 class="serif text-xl font-bold mb-2">Smart Pantry Tracking</h3>
+                            <p class="text-slate-400 text-sm leading-relaxed">Scan receipts or tell HOH what you bought. It tracks what's in your fridge, what's expiring, and suggests meals to use things up before they go bad.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feature 2: Family Coordination -->
+                <div class="feature-card p-8 rounded-2xl border border-white/5">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-[#E8A972]/20 rounded-xl flex items-center justify-center shrink-0">
+                            <i data-lucide="users" class="text-[#E8A972] w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h3 class="serif text-xl font-bold mb-2">Shared Ownership</h3>
+                            <p class="text-slate-400 text-sm leading-relaxed">Assign meal owners, set personal constraints ("no cooking Thursdays"), and give everyone visibility. No more one person carrying the mental load alone.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feature 3: Smart Grocery Lists -->
+                <div class="feature-card p-8 rounded-2xl border border-white/5">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-[#E8A972]/20 rounded-xl flex items-center justify-center shrink-0">
+                            <i data-lucide="shopping-cart" class="text-[#E8A972] w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h3 class="serif text-xl font-bold mb-2">Smart Grocery Lists</h3>
+                            <p class="text-slate-400 text-sm leading-relaxed">Auto-generated from your meal plan, minus what you already have. Organized by store section. Shareable with anyone doing the shopping.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feature 4: Dietary Intelligence -->
+                <div class="feature-card p-8 rounded-2xl border border-white/5">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-[#E8A972]/20 rounded-xl flex items-center justify-center shrink-0">
+                            <i data-lucide="heart-pulse" class="text-[#E8A972] w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h3 class="serif text-xl font-bold mb-2">Dietary Intelligence</h3>
+                            <p class="text-slate-400 text-sm leading-relaxed">Keto for you, carbs for the kids, dairy-free for Emma. HOH juggles multiple diets in one household without you having to think about it.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feature 5: Daily Briefings -->
+                <div class="feature-card p-8 rounded-2xl border border-white/5">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-[#E8A972]/20 rounded-xl flex items-center justify-center shrink-0">
+                            <i data-lucide="bell" class="text-[#E8A972] w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h3 class="serif text-xl font-bold mb-2">Daily Briefings</h3>
+                            <p class="text-slate-400 text-sm leading-relaxed">Everyone gets a morning text: "Tonight's dinner: Tacos. Jake is cooking. Start at 5:30." No more asking "what's for dinner?" 47 times.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feature 6: 1-Tap Swaps -->
+                <div class="feature-card p-8 rounded-2xl border border-white/5">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-[#E8A972]/20 rounded-xl flex items-center justify-center shrink-0">
+                            <i data-lucide="refresh-cw" class="text-[#E8A972] w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h3 class="serif text-xl font-bold mb-2">1-Tap Swaps</h3>
+                            <p class="text-slate-400 text-sm leading-relaxed">Life happens. Say "I'm exhausted" and HOH swaps tonight's meal for a 15-min backup. The whole family gets notified automatically.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feature 7: Voice Input -->
+                <div class="feature-card p-8 rounded-2xl border border-white/5">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-[#E8A972]/20 rounded-xl flex items-center justify-center shrink-0">
+                            <i data-lucide="mic" class="text-[#E8A972] w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h3 class="serif text-xl font-bold mb-2">Voice-Powered</h3>
+                            <p class="text-slate-400 text-sm leading-relaxed">Hands full? Just talk. "Add milk to the pantry." "Emma doesn't like broccoli." "We're out of pasta." HOH listens and updates instantly.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feature 8: Photo Capture -->
+                <div class="feature-card p-8 rounded-2xl border border-white/5">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-[#E8A972]/20 rounded-xl flex items-center justify-center shrink-0">
+                            <i data-lucide="camera" class="text-[#E8A972] w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h3 class="serif text-xl font-bold mb-2">Snap & Add</h3>
+                            <p class="text-slate-400 text-sm leading-relaxed">Take a photo of your grocery receipt or open fridge. HOH's AI identifies everything and updates your pantry automatically. No manual entry needed.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Interactive Mockups Section -->
+    <section class="py-24 overflow-hidden">
+        <div class="max-w-7xl mx-auto px-8">
+            <div class="text-center mb-16">
+                <h2 class="serif text-4xl md:text-5xl font-bold mb-4">See it in action</h2>
+                <p class="text-slate-400 text-lg">Here's what your week looks like with HOH</p>
+            </div>
+
+            <!-- Mockup Grid -->
+            <div class="grid lg:grid-cols-2 gap-12 items-start">
+                
+                <!-- Left Column: Phone with SMS + Swap Demo -->
+                <div class="space-y-8">
+                    
+                    <!-- Phone Mockup with SMS -->
+                    <div class="flex justify-center">
+                        <div class="phone-mockup w-[280px] float-animation">
+                            <div class="phone-screen">
+                                <div class="phone-notch"></div>
+                                <div class="p-4 min-h-[480px] bg-gradient-to-b from-slate-900 to-slate-950">
+                                    <!-- Status bar -->
+                                    <div class="flex justify-between text-xs text-slate-400 mb-4 px-2">
+                                        <span>9:41</span>
+                                        <div class="flex gap-1">
+                                            <i data-lucide="signal" class="w-3 h-3"></i>
+                                            <i data-lucide="wifi" class="w-3 h-3"></i>
+                                            <i data-lucide="battery-full" class="w-3 h-3"></i>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Messages header -->
+                                    <div class="flex items-center gap-3 mb-6 px-2">
+                                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#E8A972] to-[#D4845C] flex items-center justify-center">
+                                            <i data-lucide="home" class="w-5 h-5 text-black"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-semibold text-sm">HOH</p>
+                                            <p class="text-xs text-slate-500">Family Meal Plan</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- SMS Bubbles -->
+                                    <div class="space-y-3 px-2">
+                                        <div class="sms-bubble bg-[#E8A972]/20 rounded-2xl rounded-tl-sm p-3 max-w-[85%]">
+                                            <p class="text-sm">🌮 <strong>Tonight's dinner:</strong> Taco Bowls</p>
+                                            <p class="text-xs text-slate-400 mt-1">15 min prep • Jake is cooking</p>
+                                        </div>
+                                        
+                                        <div class="sms-bubble bg-[#E8A972]/20 rounded-2xl rounded-tl-sm p-3 max-w-[85%]">
+                                            <p class="text-sm">📋 <strong>Jake's tasks:</strong></p>
+                                            <p class="text-xs text-slate-300 mt-1">• Brown the beef (5:30)<br>• Chop toppings (5:40)<br>• Warm tortillas (5:50)</p>
+                                        </div>
+                                        
+                                        <div class="sms-bubble bg-[#E8A972]/20 rounded-2xl rounded-tl-sm p-3 max-w-[85%]">
+                                            <p class="text-sm">✅ Everything's prepped. Enjoy dinner!</p>
+                                            <p class="text-xs text-slate-500 mt-2">Tap to see tomorrow's plan →</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Swap Demo -->
+                    <div class="bg-white/5 rounded-2xl border border-white/10 p-6">
+                        <div class="flex items-center gap-2 mb-4">
+                            <i data-lucide="refresh-cw" class="w-5 h-5 text-[#E8A972]"></i>
+                            <h3 class="font-semibold">1-Tap Swap</h3>
+                        </div>
+                        
+                        <div id="swap-container" class="relative overflow-hidden">
+                            <!-- Original Meal -->
+                            <div id="original-meal" class="swap-card bg-slate-800/50 rounded-xl p-4">
+                                <div class="flex justify-between items-start mb-3">
+                                    <div>
+                                        <p class="text-xs text-slate-500 uppercase tracking-wider">Tonight</p>
+                                        <p class="font-semibold">Chicken Parmesan</p>
+                                        <p class="text-sm text-slate-400">45 min • Medium effort</p>
+                                    </div>
+                                    <span class="text-2xl">🍗</span>
+                                </div>
+                                <button id="swap-btn" class="w-full bg-[#E8A972]/20 hover:bg-[#E8A972]/30 text-[#E8A972] rounded-lg py-2 text-sm font-medium transition flex items-center justify-center gap-2">
+                                    <i data-lucide="zap" class="w-4 h-4"></i>
+                                    I'm exhausted — swap it
+                                </button>
+                            </div>
+
+                            <!-- New Meal (hidden initially) -->
+                            <div id="new-meal" class="swap-card bg-slate-800/50 rounded-xl p-4 hidden">
+                                <div class="flex justify-between items-start mb-3">
+                                    <div>
+                                        <p class="text-xs text-green-400 uppercase tracking-wider flex items-center gap-1">
+                                            <i data-lucide="check-circle" class="w-3 h-3"></i> Swapped!
+                                        </p>
+                                        <p class="font-semibold">15-Min Quesadillas</p>
+                                        <p class="text-sm text-slate-400">15 min • Minimal effort</p>
+                                    </div>
+                                    <span class="text-2xl">🧀</span>
+                                </div>
+                                <p class="text-xs text-slate-500 bg-slate-800 rounded-lg p-2">
+                                    ✓ Family notified • ✓ Uses ingredients you have
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Voice & Camera Input -->
+                    <div class="bg-white/5 rounded-2xl border border-white/10 p-6">
+                        <div class="flex items-center gap-2 mb-4">
+                            <i data-lucide="mic" class="w-5 h-5 text-[#E8A972]"></i>
+                            <h3 class="font-semibold">Voice & Camera Input</h3>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <!-- Voice Demo -->
+                            <div class="bg-slate-800/50 rounded-xl p-4">
+                                <div class="flex items-center gap-3 mb-3">
+                                    <div class="w-10 h-10 bg-[#E8A972] rounded-full flex items-center justify-center animate-pulse">
+                                        <i data-lucide="mic" class="w-5 h-5 text-black"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium">Listening...</p>
+                                        <div class="flex gap-1 mt-1">
+                                            <div class="w-1 h-3 bg-[#E8A972] rounded-full animate-bounce" style="animation-delay: 0ms;"></div>
+                                            <div class="w-1 h-4 bg-[#E8A972] rounded-full animate-bounce" style="animation-delay: 100ms;"></div>
+                                            <div class="w-1 h-2 bg-[#E8A972] rounded-full animate-bounce" style="animation-delay: 200ms;"></div>
+                                            <div class="w-1 h-5 bg-[#E8A972] rounded-full animate-bounce" style="animation-delay: 300ms;"></div>
+                                            <div class="w-1 h-3 bg-[#E8A972] rounded-full animate-bounce" style="animation-delay: 400ms;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-black/30 rounded-lg p-3">
+                                    <p class="text-sm italic text-slate-300">"We just bought milk, eggs, and cheese"</p>
+                                    <p class="text-xs text-green-400 mt-2 flex items-center gap-1">
+                                        <i data-lucide="check" class="w-3 h-3"></i>
+                                        Added 3 items to pantry
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Camera Demo -->
+                            <div class="bg-slate-800/50 rounded-xl p-4">
+                                <div class="flex items-center gap-3 mb-3">
+                                    <div class="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center">
+                                        <i data-lucide="camera" class="w-5 h-5 text-[#E8A972]"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium">Receipt scanned</p>
+                                        <p class="text-xs text-slate-500">Whole Foods • Jan 27</p>
+                                    </div>
+                                </div>
+                                <div class="bg-black/30 rounded-lg p-3">
+                                    <div class="flex flex-wrap gap-2">
+                                        <span class="text-xs bg-[#E8A972]/20 text-[#E8A972] px-2 py-1 rounded-full">🥬 Spinach</span>
+                                        <span class="text-xs bg-[#E8A972]/20 text-[#E8A972] px-2 py-1 rounded-full">🍗 Chicken</span>
+                                        <span class="text-xs bg-[#E8A972]/20 text-[#E8A972] px-2 py-1 rounded-full">🧀 Cheddar</span>
+                                        <span class="text-xs bg-[#E8A972]/20 text-[#E8A972] px-2 py-1 rounded-full">🥛 Milk</span>
+                                        <span class="text-xs bg-[#E8A972]/20 text-[#E8A972] px-2 py-1 rounded-full">🍞 Bread</span>
+                                        <span class="text-xs bg-slate-600/50 text-slate-400 px-2 py-1 rounded-full">+4 more</span>
+                                    </div>
+                                    <p class="text-xs text-green-400 mt-3 flex items-center gap-1">
+                                        <i data-lucide="check" class="w-3 h-3"></i>
+                                        9 items added to pantry
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Calendar + Grocery List -->
+                <div class="space-y-8">
+                    
+                    <!-- Weekly Calendar -->
+                    <div class="bg-white/5 rounded-2xl border border-white/10 p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="calendar" class="w-5 h-5 text-[#E8A972]"></i>
+                                <h3 class="font-semibold">This Week's Plan</h3>
+                            </div>
+                            <span class="text-xs text-slate-500">Jan 27 - Feb 2</span>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <!-- Monday -->
+                            <div class="calendar-day rounded-xl bg-[#E8A972]/10 border border-[#E8A972]/30 p-3">
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="flex items-center gap-2">
+                                        <div class="text-center w-10">
+                                            <p class="text-xs text-slate-500">MON</p>
+                                            <p class="font-bold text-[#E8A972]">27</p>
+                                        </div>
+                                        <span class="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">Today</span>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-3 gap-2 text-xs">
+                                    <div class="bg-black/20 rounded-lg p-2">
+                                        <p class="text-slate-500 mb-1">🌅 Breakfast</p>
+                                        <p class="font-medium">Overnight Oats</p>
+                                    </div>
+                                    <div class="bg-black/20 rounded-lg p-2">
+                                        <p class="text-slate-500 mb-1">☀️ Lunch</p>
+                                        <p class="font-medium">Turkey Wraps</p>
+                                    </div>
+                                    <div class="bg-black/20 rounded-lg p-2">
+                                        <p class="text-slate-500 mb-1">🌙 Dinner</p>
+                                        <p class="font-medium">Taco Bowls 🌮</p>
+                                        <p class="text-slate-500">Jake cooking</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Tuesday -->
+                            <div class="calendar-day rounded-xl hover:bg-white/5 p-3">
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="flex items-center gap-2">
+                                        <div class="text-center w-10">
+                                            <p class="text-xs text-slate-500">TUE</p>
+                                            <p class="font-bold">28</p>
+                                        </div>
+                                        <span class="text-xs bg-orange-500/20 text-orange-400 px-2 py-1 rounded-full">Soccer day</span>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-3 gap-2 text-xs">
+                                    <div class="bg-white/5 rounded-lg p-2">
+                                        <p class="text-slate-500 mb-1">🌅 Breakfast</p>
+                                        <p class="font-medium">Yogurt Parfait</p>
+                                    </div>
+                                    <div class="bg-white/5 rounded-lg p-2">
+                                        <p class="text-slate-500 mb-1">☀️ Lunch</p>
+                                        <p class="font-medium">Leftover Tacos</p>
+                                    </div>
+                                    <div class="bg-white/5 rounded-lg p-2">
+                                        <p class="text-slate-500 mb-1">🌙 Dinner</p>
+                                        <p class="font-medium">Quick Salmon 🐟</p>
+                                        <p class="text-slate-500">Sarah cooking</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Wednesday -->
+                            <div class="calendar-day rounded-xl hover:bg-white/5 p-3">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <div class="text-center w-10">
+                                        <p class="text-xs text-slate-500">WED</p>
+                                        <p class="font-bold">29</p>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-3 gap-2 text-xs">
+                                    <div class="bg-white/5 rounded-lg p-2">
+                                        <p class="text-slate-500 mb-1">🌅 Breakfast</p>
+                                        <p class="font-medium">Smoothie Bowls</p>
+                                    </div>
+                                    <div class="bg-white/5 rounded-lg p-2">
+                                        <p class="text-slate-500 mb-1">☀️ Lunch</p>
+                                        <p class="font-medium">Chicken Salad</p>
+                                    </div>
+                                    <div class="bg-white/5 rounded-lg p-2">
+                                        <p class="text-slate-500 mb-1">🌙 Dinner</p>
+                                        <p class="font-medium">Pasta 🍝</p>
+                                        <p class="text-slate-500">Jake cooking</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Thursday -->
+                            <div class="calendar-day rounded-xl hover:bg-white/5 p-3">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <div class="text-center w-10">
+                                        <p class="text-xs text-slate-500">THU</p>
+                                        <p class="font-bold">30</p>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-3 gap-2 text-xs">
+                                    <div class="bg-white/5 rounded-lg p-2">
+                                        <p class="text-slate-500 mb-1">🌅 Breakfast</p>
+                                        <p class="font-medium">Avocado Toast</p>
+                                    </div>
+                                    <div class="bg-white/5 rounded-lg p-2">
+                                        <p class="text-slate-500 mb-1">☀️ Lunch</p>
+                                        <p class="font-medium">Soup & Bread</p>
+                                    </div>
+                                    <div class="bg-white/5 rounded-lg p-2">
+                                        <p class="text-slate-500 mb-1">🌙 Dinner</p>
+                                        <p class="font-medium">Stir Fry 🥡</p>
+                                        <p class="text-slate-500">Sarah cooking</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Friday -->
+                            <div class="calendar-day rounded-xl hover:bg-white/5 p-3">
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="flex items-center gap-2">
+                                        <div class="text-center w-10">
+                                            <p class="text-xs text-slate-500">FRI</p>
+                                            <p class="font-bold">31</p>
+                                        </div>
+                                        <span class="text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded-full">Movie night</span>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-3 gap-2 text-xs">
+                                    <div class="bg-white/5 rounded-lg p-2">
+                                        <p class="text-slate-500 mb-1">🌅 Breakfast</p>
+                                        <p class="font-medium">Pancakes 🥞</p>
+                                    </div>
+                                    <div class="bg-white/5 rounded-lg p-2">
+                                        <p class="text-slate-500 mb-1">☀️ Lunch</p>
+                                        <p class="font-medium">Grilled Cheese</p>
+                                    </div>
+                                    <div class="bg-white/5 rounded-lg p-2">
+                                        <p class="text-slate-500 mb-1">🌙 Dinner</p>
+                                        <p class="font-medium">Pizza 🍕</p>
+                                        <p class="text-slate-500">Family cooking</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grocery List -->
+                    <div class="bg-white/5 rounded-2xl border border-white/10 p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="shopping-cart" class="w-5 h-5 text-[#E8A972]"></i>
+                                <h3 class="font-semibold">Smart Grocery List</h3>
+                            </div>
+                            <span class="text-xs text-green-400 flex items-center gap-1">
+                                <i data-lucide="check" class="w-3 h-3"></i>
+                                Auto-generated
+                            </span>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <!-- Produce -->
+                            <div>
+                                <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">🥬 Produce</p>
+                                <div class="space-y-1">
+                                    <label class="grocery-item flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 cursor-pointer">
+                                        <input type="checkbox" class="w-4 h-4 rounded border-slate-600 text-[#E8A972] focus:ring-[#E8A972]">
+                                        <span class="text-sm">Bell peppers (3)</span>
+                                        <span class="text-xs text-slate-500 ml-auto">Stir fry, Fajitas</span>
+                                    </label>
+                                    <label class="grocery-item flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 cursor-pointer">
+                                        <input type="checkbox" class="w-4 h-4 rounded border-slate-600 text-[#E8A972] focus:ring-[#E8A972]">
+                                        <span class="text-sm">Broccoli (2 heads)</span>
+                                        <span class="text-xs text-slate-500 ml-auto">Stir fry</span>
+                                    </label>
+                                    <label class="grocery-item flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 cursor-pointer">
+                                        <input type="checkbox" class="w-4 h-4 rounded border-slate-600 text-[#E8A972] focus:ring-[#E8A972]">
+                                        <span class="text-sm">Avocados (4)</span>
+                                        <span class="text-xs text-slate-500 ml-auto">Tacos</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Protein -->
+                            <div>
+                                <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">🥩 Protein</p>
+                                <div class="space-y-1">
+                                    <label class="grocery-item flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 cursor-pointer">
+                                        <input type="checkbox" class="w-4 h-4 rounded border-slate-600 text-[#E8A972] focus:ring-[#E8A972]">
+                                        <span class="text-sm">Chicken breast (2 lbs)</span>
+                                        <span class="text-xs text-slate-500 ml-auto">Stir fry</span>
+                                    </label>
+                                    <label class="grocery-item flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 cursor-pointer">
+                                        <input type="checkbox" class="w-4 h-4 rounded border-slate-600 text-[#E8A972] focus:ring-[#E8A972]">
+                                        <span class="text-sm">Salmon fillets (4)</span>
+                                        <span class="text-xs text-slate-500 ml-auto">Sheet pan dinner</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Already Have -->
+                            <div class="bg-slate-800/50 rounded-xl p-3 mt-4">
+                                <p class="text-xs text-slate-400 flex items-center gap-2">
+                                    <i data-lucide="package" class="w-3 h-3"></i>
+                                    <strong>Already in your pantry:</strong> Rice, pasta, olive oil, soy sauce, taco seasoning
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonial Section -->
+    <section class="py-24 relative">
+        <div class="testimonial-glow"></div>
+        <div class="max-w-4xl mx-auto px-8">
+            <div class="text-center">
+                <div class="inline-flex items-center gap-1 mb-8">
+                    <i data-lucide="star" class="w-5 h-5 text-[#E8A972] fill-[#E8A972]"></i>
+                    <i data-lucide="star" class="w-5 h-5 text-[#E8A972] fill-[#E8A972]"></i>
+                    <i data-lucide="star" class="w-5 h-5 text-[#E8A972] fill-[#E8A972]"></i>
+                    <i data-lucide="star" class="w-5 h-5 text-[#E8A972] fill-[#E8A972]"></i>
+                    <i data-lucide="star" class="w-5 h-5 text-[#E8A972] fill-[#E8A972]"></i>
+                </div>
+                
+                <blockquote class="serif text-2xl md:text-3xl font-medium leading-relaxed mb-8 italic">
+                    "I used to dread 5 PM every single day. Now I actually look forward to cooking because the decision is already made. My husband finally helps without asking me 20 questions. This thing gets us."
+                </blockquote>
+                
+                <div class="flex items-center justify-center gap-4">
+                    <div class="w-14 h-14 rounded-full bg-gradient-to-br from-[#E8A972] to-[#D4845C] flex items-center justify-center text-2xl">
+                        👩‍👧‍👦
+                    </div>
+                    <div class="text-left">
+                        <p class="font-bold">Rachel M.</p>
+                        <p class="text-slate-500 text-sm">Mom of 2, Beta Tester</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="py-24 section-dark border-t border-white/5">
+        <div class="max-w-5xl mx-auto px-8">
+            <div class="text-center mb-16">
+                <p class="text-[#E8A972] text-sm uppercase tracking-widest mb-4">About Us</p>
+                <h2 class="serif text-4xl md:text-5xl font-bold">Built by parents, for parents.</h2>
+            </div>
+
+            <!-- Our Story - Full Width -->
+            <div class="bg-white/5 rounded-2xl border border-white/10 p-8 md:p-12 mb-8">
+                <div class="max-w-3xl mx-auto text-center">
+                    <div class="text-5xl mb-6">👨‍👩‍👧‍👦</div>
+                    <h3 class="serif text-2xl md:text-3xl font-bold mb-6">A Family Like Yours</h3>
+                    <p class="text-slate-400 leading-relaxed mb-4 text-lg">
+                        Two working parents. Two young kids. Zero free time.
+                    </p>
+                    <p class="text-slate-400 leading-relaxed mb-4">
+                        We're a dual-income family with a 2-year-old and a 4-year-old. We know the chaos firsthand—the mental gymnastics of figuring out dinner while juggling daycare pickups, work deadlines, and bedtime routines.
+                    </p>
+                    <p class="text-slate-400 leading-relaxed mb-4">
+                        HOH wasn't born in a startup lab. It was born at <strong class="text-white">5:47 PM on a Tuesday</strong>, standing in front of an open fridge, with a toddler on one hip and a preschooler asking "what's for dinner?" for the third time.
+                    </p>
+                    <p class="text-slate-300 leading-relaxed text-lg">
+                        We built HOH because we needed it. And if you're reading this, you probably do too.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Privacy - Grid Layout -->
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="bg-white/5 rounded-2xl border border-white/10 p-8">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-12 h-12 bg-[#E8A972]/20 rounded-xl flex items-center justify-center">
+                            <i data-lucide="shield-check" class="w-6 h-6 text-[#E8A972]"></i>
+                        </div>
+                        <h3 class="serif text-xl font-bold">Your Privacy Matters</h3>
+                    </div>
+                    <p class="text-slate-400 leading-relaxed mb-6">
+                        Your family's data is exactly that—<strong class="text-white">yours</strong>. We take privacy seriously because we're trusting HOH with our own family's information too.
+                    </p>
+                    <ul class="space-y-4">
+                        <li class="flex items-start gap-3 text-sm text-slate-400">
+                            <i data-lucide="check-circle-2" class="w-5 h-5 text-green-400 shrink-0 mt-0.5"></i>
+                            <span><strong class="text-slate-300">No selling data.</strong> Ever. Your meal preferences won't end up in an ad.</span>
+                        </li>
+                        <li class="flex items-start gap-3 text-sm text-slate-400">
+                            <i data-lucide="check-circle-2" class="w-5 h-5 text-green-400 shrink-0 mt-0.5"></i>
+                            <span><strong class="text-slate-300">Encrypted & secure.</strong> Your data is protected with industry-standard encryption.</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="bg-white/5 rounded-2xl border border-white/10 p-8">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-12 h-12 bg-[#E8A972]/20 rounded-xl flex items-center justify-center">
+                            <i data-lucide="lock" class="w-6 h-6 text-[#E8A972]"></i>
+                        </div>
+                        <h3 class="serif text-xl font-bold">Your Data, Your Rules</h3>
+                    </div>
+                    <p class="text-slate-400 leading-relaxed mb-6">
+                        We only collect what's needed to make HOH work for you. Nothing more, nothing less.
+                    </p>
+                    <ul class="space-y-4">
+                        <li class="flex items-start gap-3 text-sm text-slate-400">
+                            <i data-lucide="check-circle-2" class="w-5 h-5 text-green-400 shrink-0 mt-0.5"></i>
+                            <span><strong class="text-slate-300">Delete anytime.</strong> Request deletion whenever you want. No questions asked.</span>
+                        </li>
+                        <li class="flex items-start gap-3 text-sm text-slate-400">
+                            <i data-lucide="check-circle-2" class="w-5 h-5 text-green-400 shrink-0 mt-0.5"></i>
+                            <span><strong class="text-slate-300">Minimal collection.</strong> We don't hoard data. If we don't need it, we don't ask for it.</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Quote -->
+            <div class="mt-8 bg-gradient-to-br from-[#E8A972]/10 to-transparent rounded-2xl border border-[#E8A972]/20 p-8 text-center">
+                <p class="text-lg text-slate-300 italic">
+                    "We started HOH to get our sanity back. Turns out a lot of families needed the same thing."
+                </p>
+                <p class="text-sm text-slate-500 mt-4">— The HOH Family</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Vision Hint Section -->
+    <section class="py-16 border-t border-white/5">
+        <div class="max-w-4xl mx-auto px-8 text-center">
+            <p class="text-slate-500 text-sm uppercase tracking-widest mb-4">The Bigger Picture</p>
+            <p class="serif text-2xl md:text-3xl font-medium text-slate-300 leading-relaxed">
+                Starting with meals. Building toward a home that runs itself.
+            </p>
+            <p class="text-slate-500 mt-4 text-sm">Smart home integration, automated grocery delivery, and more—coming soon.</p>
+        </div>
+    </section>
+
+    <!-- Final CTA Section -->
+    <section class="py-24 relative">
+        <div class="absolute inset-0 bg-gradient-to-b from-transparent via-[#141414]/50 to-[#0D0D0D] pointer-events-none"></div>
+        <div class="max-w-3xl mx-auto px-8 text-center relative z-10">
+            <h2 class="serif text-4xl md:text-5xl font-bold mb-6">Ready to stop being the "Default Parent"?</h2>
+            <p class="text-slate-400 text-lg mb-10">Join thousands of families already on the waitlist. Early access launching soon.</p>
+            
+            <form class="max-w-md mx-auto flex flex-col md:flex-row gap-3" onsubmit="submitEmail(event, this)">
+                <input type="email" name="email" placeholder="Enter your email" required 
+                    class="flex-1 bg-white/5 border border-white/10 px-6 py-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E8A972]/50">
+                <button type="submit" class="bg-gradient-to-r from-[#E8A972] to-[#D4845C] text-black px-8 py-4 rounded-xl font-bold hover:scale-105 transition-transform">
+                    Get Early Access
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 text-center text-slate-600 text-xs border-t border-white/5">
+        <p>© 2026 Home Operations Hub. All rights reserved.</p>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+
+        // Swap Demo Interaction
+        document.getElementById('swap-btn')?.addEventListener('click', function() {
+            const originalMeal = document.getElementById('original-meal');
+            const newMeal = document.getElementById('new-meal');
+            
+            // Animate out
+            originalMeal.classList.add('swapping');
+            
+            // After animation, show new meal
+            setTimeout(() => {
+                originalMeal.classList.add('hidden');
+                newMeal.classList.remove('hidden');
+                newMeal.classList.add('new-meal');
+            }, 500);
+
+            // Reset after 4 seconds
+            setTimeout(() => {
+                originalMeal.classList.remove('swapping', 'hidden');
+                newMeal.classList.add('hidden');
+                newMeal.classList.remove('new-meal');
+            }, 4000);
+        });
+
+        // Grocery list checkbox interaction
+        document.querySelectorAll('.grocery-item input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const label = this.closest('.grocery-item');
+                if (this.checked) {
+                    label.classList.add('checked');
+                } else {
+                    label.classList.remove('checked');
+                }
+            });
+        });
+
+        // Get UTM parameters from URL
+        function getUTMParams() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                utm_source: params.get('utm_source') || 'direct',
+                utm_medium: params.get('utm_medium') || '',
+                utm_campaign: params.get('utm_campaign') || '',
+                referrer: document.referrer || ''
+            };
+        }
+
+        async function submitEmail(event, form) {
+            event.preventDefault();
+            
+            const email = form.querySelector('input[name="email"]').value;
+            const button = form.querySelector('button[type="submit"]');
+            const originalText = button.textContent;
+            const utmParams = getUTMParams();
+            
+            // Show loading state
+            button.textContent = 'Submitting...';
+            button.disabled = true;
+            
+            try {
+                const response = await fetch('https://ukznx7w0u6.execute-api.us-east-1.amazonaws.com/prod/signup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        email: email,
+                        source: utmParams.utm_source,
+                        medium: utmParams.utm_medium,
+                        campaign: utmParams.utm_campaign,
+                        referrer: utmParams.referrer
+                    })
+                });
+                
+                if (response.ok) {
+                    // Success state
+                    button.textContent = 'You\'re in! 🎉';
+                    button.classList.remove('from-[#E8A972]', 'to-[#D4845C]');
+                    button.classList.add('from-green-500', 'to-green-600');
+                    form.querySelector('input[name="email"]').value = '';
+                    
+                    // Reset after 3 seconds
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.classList.remove('from-green-500', 'to-green-600');
+                        button.classList.add('from-[#E8A972]', 'to-[#D4845C]');
+                        button.disabled = false;
+                    }, 3000);
+                } else {
+                    throw new Error('Submission failed');
+                }
+            } catch (error) {
+                // Error state
+                button.textContent = 'Try again';
+                button.classList.remove('from-[#E8A972]', 'to-[#D4845C]');
+                button.classList.add('from-red-500', 'to-red-600');
+                
+                // Reset after 2 seconds
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.classList.remove('from-red-500', 'to-red-600');
+                    button.classList.add('from-[#E8A972]', 'to-[#D4845C]');
+                    button.disabled = false;
+                }, 2000);
+            }
+        }
+    </script>
+</body>
+</html>
