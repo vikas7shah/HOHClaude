@@ -188,6 +188,11 @@ function StepFamily() {
   const [restrictions, setRestrictions] = useState<string[]>([]);
   const [allergies, setAllergies] = useState('');
   const [sameAsAdults, setSameAsAdults] = useState(true);
+  const [mealTab, setMealTab] = useState<'breakfast' | 'lunch' | 'dinner'>('breakfast');
+  const [memberBreakfast, setMemberBreakfast] = useState<string[]>([]);
+  const [memberLunch, setMemberLunch] = useState<string[]>([]);
+  const [memberDinner, setMemberDinner] = useState<string[]>([]);
+  const [mealInput, setMealInput] = useState('');
   const [saving, setSaving] = useState(false);
 
   // Load existing family members
@@ -208,12 +213,19 @@ function StepFamily() {
     setSaving(true);
     try {
       const ageNum = age ? parseInt(age, 10) : undefined;
+      const mealPreferences = !sameAsAdults ? {
+        breakfast: memberBreakfast,
+        lunch: memberLunch,
+        dinner: memberDinner,
+      } : undefined;
+
       const result = await familyApi.addMember({
         name: name.trim(),
         age: ageNum,
         dietaryRestrictions: restrictions,
         allergies: allergies.split(',').map(a => a.trim()).filter(Boolean),
         sameAsAdults: sameAsAdults,
+        mealPreferences,
       });
       setMembers([...members, result.member]);
       setName('');
@@ -221,6 +233,11 @@ function StepFamily() {
       setRestrictions([]);
       setAllergies('');
       setSameAsAdults(true);
+      setMemberBreakfast([]);
+      setMemberLunch([]);
+      setMemberDinner([]);
+      setMealInput('');
+      setMealTab('breakfast');
     } catch (err) {
       console.error(err);
     } finally {
@@ -339,6 +356,117 @@ function StepFamily() {
             </div>
           </button>
         </div>
+
+        {/* Meal preferences for members with different meals */}
+        {!sameAsAdults && (
+          <div className="space-y-3 p-4 bg-purple-50 rounded-lg border border-purple-200">
+            <p className="text-sm font-medium text-purple-800">
+              What does {name || 'this member'} typically eat?
+            </p>
+
+            {/* Tabs */}
+            <div className="flex gap-1 bg-purple-100 p-1 rounded-lg">
+              {(['breakfast', 'lunch', 'dinner'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setMealTab(tab)}
+                  className={`flex-1 px-3 py-2 rounded-md text-sm font-medium capitalize transition-colors ${
+                    mealTab === tab
+                      ? 'bg-white text-purple-700 shadow-sm'
+                      : 'text-purple-600 hover:text-purple-800'
+                  }`}
+                >
+                  {tab}
+                  {(tab === 'breakfast' ? memberBreakfast : tab === 'lunch' ? memberLunch : memberDinner).length > 0 && (
+                    <span className="ml-1 text-xs">({(tab === 'breakfast' ? memberBreakfast : tab === 'lunch' ? memberLunch : memberDinner).length})</span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Input for current tab */}
+            <div className="flex gap-2">
+              <Input
+                placeholder={`e.g., ${mealTab === 'breakfast' ? 'cereal, fruit' : mealTab === 'lunch' ? 'mac and cheese' : 'pasta, nuggets'}`}
+                value={mealInput}
+                onChange={(e) => setMealInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && mealInput.trim()) {
+                    e.preventDefault();
+                    const items = mealInput.split(',').map(v => v.trim()).filter(Boolean);
+                    if (mealTab === 'breakfast') {
+                      setMemberBreakfast(prev => [...new Set([...prev, ...items])]);
+                    } else if (mealTab === 'lunch') {
+                      setMemberLunch(prev => [...new Set([...prev, ...items])]);
+                    } else {
+                      setMemberDinner(prev => [...new Set([...prev, ...items])]);
+                    }
+                    setMealInput('');
+                  }
+                }}
+                className="flex-1 bg-white"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (mealInput.trim()) {
+                    const items = mealInput.split(',').map(v => v.trim()).filter(Boolean);
+                    if (mealTab === 'breakfast') {
+                      setMemberBreakfast(prev => [...new Set([...prev, ...items])]);
+                    } else if (mealTab === 'lunch') {
+                      setMemberLunch(prev => [...new Set([...prev, ...items])]);
+                    } else {
+                      setMemberDinner(prev => [...new Set([...prev, ...items])]);
+                    }
+                    setMealInput('');
+                  }
+                }}
+                className="bg-white"
+              >
+                Add
+              </Button>
+            </div>
+
+            {/* Tags for current tab */}
+            {(mealTab === 'breakfast' ? memberBreakfast : mealTab === 'lunch' ? memberLunch : memberDinner).length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {(mealTab === 'breakfast' ? memberBreakfast : mealTab === 'lunch' ? memberLunch : memberDinner).map((item) => (
+                  <span
+                    key={item}
+                    className={`px-3 py-1 rounded-full text-sm flex items-center gap-1 ${
+                      mealTab === 'breakfast' ? 'bg-orange-100 text-orange-700' :
+                      mealTab === 'lunch' ? 'bg-green-100 text-green-700' :
+                      'bg-blue-100 text-blue-700'
+                    }`}
+                  >
+                    {item}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (mealTab === 'breakfast') {
+                          setMemberBreakfast(prev => prev.filter(i => i !== item));
+                        } else if (mealTab === 'lunch') {
+                          setMemberLunch(prev => prev.filter(i => i !== item));
+                        } else {
+                          setMemberDinner(prev => prev.filter(i => i !== item));
+                        }
+                      }}
+                      className="hover:opacity-70"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <p className="text-xs text-purple-600">
+              These help us suggest appropriate meals for {name || 'this member'}.
+            </p>
+          </div>
+        )}
 
         <Button onClick={addMember} disabled={!name.trim() || saving} variant="outline" className="w-full">
           <UserPlus className="h-4 w-4 mr-2" />

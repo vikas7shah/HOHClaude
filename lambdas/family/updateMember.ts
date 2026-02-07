@@ -1,17 +1,34 @@
-import { docClient, USERS_TABLE, getUserId, requireHouseholdId, success, error, PutCommand } from '../shared/dynamo';
-import { randomUUID } from 'crypto';
+import { docClient, USERS_TABLE, getUserId, requireHouseholdId, success, error, PutCommand, GetCommand } from '../shared/dynamo';
 
 export async function handler(event: any) {
   try {
     const userId = getUserId(event);
+    const memberId = event.pathParameters?.memberId;
     const body = JSON.parse(event.body || '{}');
+
+    if (!memberId) {
+      return error(400, 'memberId is required');
+    }
 
     // Require user to be in a household
     let householdId: string;
     try {
       householdId = await requireHouseholdId(userId);
     } catch {
-      return error(400, 'You must be part of a household to add family members');
+      return error(400, 'You must be part of a household to update family members');
+    }
+
+    // Fetch existing member to make sure it exists
+    const existingResult = await docClient.send(new GetCommand({
+      TableName: USERS_TABLE,
+      Key: {
+        PK: `HOUSEHOLD#${householdId}`,
+        SK: `MEMBER#${memberId}`,
+      },
+    }));
+
+    if (!existingResult.Item) {
+      return error(404, 'Family member not found');
     }
 
     const { name, age, dietaryRestrictions, allergies, likes, dislikes, sameAsAdults, mealPreferences } = body;
@@ -20,7 +37,6 @@ export async function handler(event: any) {
       return error(400, 'name is required');
     }
 
-    const memberId = randomUUID();
     const sameAsAdultsValue = sameAsAdults !== undefined ? sameAsAdults : true;
 
     // Only store meal preferences if member has different meals
@@ -43,27 +59,29 @@ export async function handler(event: any) {
         dislikes: dislikes || [],
         sameAsAdults: sameAsAdultsValue,
         mealPreferences: mealPrefsToStore,
-        addedBy: userId,
-        createdAt: new Date().toISOString(),
+        addedBy: existingResult.Item.addedBy,
+        createdAt: existingResult.Item.createdAt,
+        updatedAt: new Date().toISOString(),
+        updatedBy: userId,
       },
     }));
 
     return success({
-      message: 'Family member added',
+      message: 'Family member updated',
       member: {
         id: memberId,
         name,
         age,
-        dietaryRestrictions,
-        allergies,
-        likes,
-        dislikes,
+        dietaryRestrictions: dietaryRestrictions || [],
+        allergies: allergies || [],
+        likes: likes || [],
+        dislikes: dislikes || [],
         sameAsAdults: sameAsAdultsValue,
         mealPreferences: mealPrefsToStore,
       }
     });
   } catch (err) {
-    console.error('Error adding member:', err);
-    return error(500, 'Failed to add family member');
+    console.error('Error updating member:', err);
+    return error(500, 'Failed to update family member');
   }
 }

@@ -5,7 +5,8 @@ import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
 import { Onboarding } from './pages/Onboarding';
 import { MealPlan } from './pages/MealPlan';
-import { MealAgent } from './pages/MealAgent';
+import { PantryManagement } from './pages/PantryManagement';
+import { GroceryList } from './pages/GroceryList';
 import { HouseholdSettings } from './pages/HouseholdSettings';
 import { useProfile } from './hooks/useProfile';
 
@@ -41,7 +42,8 @@ function AuthenticatedApp() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/meal-plan" element={<MealPlan />} />
-          <Route path="/meal-agent" element={<MealAgent />} />
+          <Route path="/pantry" element={<PantryManagement />} />
+          <Route path="/grocery-list" element={<GroceryList />} />
           <Route path="/household" element={<HouseholdSettings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

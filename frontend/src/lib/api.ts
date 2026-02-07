@@ -29,7 +29,11 @@ async function apiRequest(method: string, path: string, body?: any) {
 // User API
 export const userApi = {
   getProfile: () => apiRequest('GET', '/users/profile'),
-  saveProfile: (data: { displayName?: string }) => apiRequest('POST', '/users/profile', data),
+  saveProfile: (data: {
+    displayName?: string;
+    dietaryRestrictions?: string[];
+    allergies?: string[];
+  }) => apiRequest('POST', '/users/profile', data),
   getPreferences: () => apiRequest('GET', '/users/preferences'),
   updatePreferences: (data: {
     cuisines?: string[];
@@ -72,6 +76,20 @@ export const familyApi = {
       dinner: string[];
     };
   }) => apiRequest('POST', '/family', data),
+  updateMember: (memberId: string, data: {
+    name: string;
+    age?: number;
+    dietaryRestrictions?: string[];
+    allergies?: string[];
+    likes?: string[];
+    dislikes?: string[];
+    sameAsAdults?: boolean;
+    mealPreferences?: {
+      breakfast: string[];
+      lunch: string[];
+      dinner: string[];
+    };
+  }) => apiRequest('PUT', `/family/${memberId}`, data),
   deleteMember: (memberId: string) => apiRequest('DELETE', `/family/${memberId}`),
 };
 
@@ -80,6 +98,14 @@ export const mealsApi = {
   generatePlan: (startDate: string) => apiRequest('POST', '/meals/generate', { startDate }),
   getPlan: (startDate?: string) =>
     apiRequest('GET', startDate ? `/meals/plan?startDate=${startDate}` : '/meals/plan'),
+  updateMeal: (params: {
+    startDate: string;
+    date: string;
+    mealType: string;
+    action: 'swap' | 'custom';
+    customMealName?: string;
+    forMemberId?: string;
+  }) => apiRequest('POST', '/meals/update', params),
 };
 
 // Agent API (Strands-based Meal Planning AI)

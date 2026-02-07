@@ -11,6 +11,7 @@
     "synth": "cdk synth"
   },
   "dependencies": {
+    "@aws-cdk/aws-lambda-python-alpha": "^2.237.0-alpha.0",
     "aws-cdk-lib": "^2.170.0",
     "constructs": "^10.4.2"
   },

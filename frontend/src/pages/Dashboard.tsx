@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
 import { Button } from '../components/ui/Button';
 import { mealsApi, familyApi, householdApi } from '../lib/api';
 import { useProfile } from '../hooks/useProfile';
+import { getWeekStart, formatDate } from '../lib/utils';
 
 export function Dashboard() {
   const { profile, household } = useProfile();
@@ -16,8 +17,11 @@ export function Dashboard() {
   useEffect(() => {
     async function loadData() {
       try {
+        // Get the current week's start date to fetch the correct meal plan
+        const currentWeekStart = formatDate(getWeekStart());
+
         const [planData, familyData, householdData] = await Promise.all([
-          mealsApi.getPlan(),
+          mealsApi.getPlan(currentWeekStart),
           familyApi.getFamily(),
           householdApi.get(),
         ]);
@@ -126,21 +130,30 @@ export function Dashboard() {
             <div className="grid gap-4 md:grid-cols-3">
               {todayMeals.map((meal: any, index: number) => (
                 <div key={index} className="flex gap-3 p-3 rounded-lg border">
-                  {meal.recipeImage && (
+                  {meal.recipeImage ? (
                     <img
                       src={meal.recipeImage}
                       alt={meal.recipeName}
                       className="w-16 h-16 rounded object-cover"
                     />
+                  ) : (
+                    <div className="w-16 h-16 rounded bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <ChefHat className="h-6 w-6 text-primary/40" />
+                    </div>
                   )}
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <p className="text-xs uppercase text-muted-foreground">
                       {meal.mealType}
+                      {meal.forMembers && meal.forMembers.length > 0 && !meal.forMembers.includes('Adults') && (
+                        <span className="ml-1 normal-case">({meal.forMembers.join(', ')})</span>
+                      )}
                     </p>
-                    <p className="font-medium">{meal.recipeName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {meal.readyInMinutes} min
-                    </p>
+                    <p className="font-medium truncate">{meal.recipeName}</p>
+                    {meal.readyInMinutes ? (
+                      <p className="text-xs text-muted-foreground">{meal.readyInMinutes} min</p>
+                    ) : meal.isUserMeal ? (
+                      <p className="text-xs text-primary/60">Your meal</p>
+                    ) : null}
                   </div>
                 </div>
               ))}

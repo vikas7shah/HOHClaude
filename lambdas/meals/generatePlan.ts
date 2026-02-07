@@ -11,6 +11,17 @@ function generateMealId(mealName: string): string {
   return `user-${mealName.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`;
 }
 
+// Remove undefined/null values from an object for DynamoDB compatibility
+function cleanMealObject(meal: any): any {
+  const cleaned: any = {};
+  for (const [key, value] of Object.entries(meal)) {
+    if (value !== undefined && value !== null) {
+      cleaned[key] = value;
+    }
+  }
+  return cleaned;
+}
+
 export async function handler(event: any) {
   try {
     const userId = getUserId(event);
@@ -98,6 +109,16 @@ export async function handler(event: any) {
     const meals: any[] = [];
     const start = new Date(startDate);
 
+    // Check if user_preference mode has any meals defined
+    const hasAnyTypicalMeals = typicalBreakfast.length > 0 ||
+                               typicalLunch.length > 0 ||
+                               typicalDinner.length > 0 ||
+                               typicalSnacks.length > 0;
+
+    if (mealSuggestionMode === 'user_preference' && !hasAnyTypicalMeals) {
+      return error(400, 'You have "My Preferences Only" mode selected but no typical meals saved. Please go to Household Settings and add your typical breakfast, lunch, dinner, or snack options first. Or switch to "AI Suggestions" mode.');
+    }
+
     // Only call Spoonacular API if mode is 'ai_suggest' or 'ai_and_user'
     let aiPlan: any = null;
     let kidAiPlan: any = null;
@@ -127,7 +148,11 @@ export async function handler(event: any) {
 
     // Helper to build member names list for "Adults" group
     const adultMemberNames = ['Adults', ...membersWithSameMeals.map((m: any) => m.name)];
-    const kidMemberNames = membersWithDifferentMeals.map((m: any) => ({ id: m.SK.replace('MEMBER#', ''), name: m.name }));
+    const kidMemberData = membersWithDifferentMeals.map((m: any) => ({
+      id: m.SK.replace('MEMBER#', ''),
+      name: m.name,
+      mealPreferences: m.mealPreferences || null,
+    }));
 
     // Build the meal plan
     days.forEach((day, index) => {
@@ -144,10 +169,10 @@ export async function handler(event: any) {
           mealType === 'lunch' ? typicalLunch :
           mealType === 'dinner' ? typicalDinner : typicalSnacks;
 
-        // Determine who this meal is for
+        // Determine who this meal is for (only set if there are members with different meals)
         const forMembers = membersWithDifferentMeals.length > 0
           ? adultMemberNames
-          : undefined; // If no one has different meals, don't specify (everyone eats same)
+          : null; // If no one has different meals, set to null (DynamoDB accepts null but not undefined)
 
         if (mealSuggestionMode === 'user_preference') {
           // USER PREFERENCE ONLY: Use saved meals directly, no API calls
@@ -276,48 +301,122 @@ export async function handler(event: any) {
         }
 
         // Now add separate meals for kids who need different meals
-        if (kidMemberNames.length > 0 && mealType !== 'snacks') {
+        if (kidMemberData.length > 0 && mealType !== 'snacks') {
           // For each kid with different meals, add a separate meal entry
-          kidMemberNames.forEach((kid) => {
-            if (kidAiPlan && (mealSuggestionMode === 'ai_suggest' || mealSuggestionMode === 'ai_and_user')) {
-              const dayPlan = (kidAiPlan.week as any)[day];
-              const aiMealIndex = mealType === 'breakfast' ? 0 : mealType === 'lunch' ? 1 : 2;
-              const recipe = dayPlan?.meals?.[aiMealIndex];
-              if (recipe) {
+          kidMemberData.forEach((kid) => {
+            // Get this kid's meal preferences for this meal type
+            const kidMealPrefs = kid.mealPreferences;
+            const kidMealsForType = kidMealPrefs ?
+              (mealType === 'breakfast' ? kidMealPrefs.breakfast :
+               mealType === 'lunch' ? kidMealPrefs.lunch :
+               kidMealPrefs.dinner) || [] : [];
+
+            // In user_preference mode, use kid's specific meal preferences
+            if (mealSuggestionMode === 'user_preference') {
+              if (kidMealsForType.length > 0) {
+                // Use kid's own meal preferences
+                const mealName = pickRandom(kidMealsForType);
                 meals.push({
                   date: dateStr,
                   day,
                   mealType,
-                  recipeId: `kid-${kid.id}-${recipe.id}`,
-                  recipeName: recipe.title,
-                  recipeImage: `https://spoonacular.com/recipeImages/${recipe.id}-312x231.jpg`,
-                  readyInMinutes: recipe.readyInMinutes,
+                  recipeId: `kid-${kid.id}-${generateMealId(mealName)}`,
+                  recipeName: mealName,
+                  recipeImage: null,
+                  readyInMinutes: null,
                   servings: 1,
-                  sourceUrl: recipe.sourceUrl,
-                  source: 'ai_suggest',
-                  isUserMeal: false,
+                  sourceUrl: null,
+                  source: 'user_preference',
+                  isUserMeal: true,
+                  forMembers: [kid.name],
+                  forMemberId: kid.id,
+                });
+              } else if (userMeals.length > 0) {
+                // Fall back to family preferences if kid has none
+                const mealName = pickRandom(userMeals);
+                meals.push({
+                  date: dateStr,
+                  day,
+                  mealType,
+                  recipeId: `kid-${kid.id}-${generateMealId(mealName)}`,
+                  recipeName: mealName,
+                  recipeImage: null,
+                  readyInMinutes: null,
+                  servings: 1,
+                  sourceUrl: null,
+                  source: 'user_preference',
+                  isUserMeal: true,
                   forMembers: [kid.name],
                   forMemberId: kid.id,
                 });
               }
-            } else if (mealSuggestionMode === 'user_preference' && userMeals.length > 0) {
-              // Use user meals for kids in user_preference mode
-              const mealName = pickRandom(userMeals);
-              meals.push({
-                date: dateStr,
-                day,
-                mealType,
-                recipeId: `kid-${kid.id}-${generateMealId(mealName)}`,
-                recipeName: mealName,
-                recipeImage: null,
-                readyInMinutes: null,
-                servings: 1,
-                sourceUrl: null,
-                source: 'user_preference',
-                isUserMeal: true,
-                forMembers: [kid.name],
-                forMemberId: kid.id,
-              });
+            } else if (mealSuggestionMode === 'ai_and_user') {
+              // Mix mode: alternate between kid's preferences and AI
+              const useKidMeal = index % 2 === 0 && kidMealsForType.length > 0;
+
+              if (useKidMeal) {
+                const mealName = pickRandom(kidMealsForType);
+                meals.push({
+                  date: dateStr,
+                  day,
+                  mealType,
+                  recipeId: `kid-${kid.id}-${generateMealId(mealName)}`,
+                  recipeName: mealName,
+                  recipeImage: null,
+                  readyInMinutes: null,
+                  servings: 1,
+                  sourceUrl: null,
+                  source: 'user_preference',
+                  isUserMeal: true,
+                  forMembers: [kid.name],
+                  forMemberId: kid.id,
+                });
+              } else if (kidAiPlan) {
+                const dayPlan = (kidAiPlan.week as any)[day];
+                const aiMealIndex = mealType === 'breakfast' ? 0 : mealType === 'lunch' ? 1 : 2;
+                const recipe = dayPlan?.meals?.[aiMealIndex];
+                if (recipe) {
+                  meals.push({
+                    date: dateStr,
+                    day,
+                    mealType,
+                    recipeId: `kid-${kid.id}-${recipe.id}`,
+                    recipeName: recipe.title,
+                    recipeImage: `https://spoonacular.com/recipeImages/${recipe.id}-312x231.jpg`,
+                    readyInMinutes: recipe.readyInMinutes,
+                    servings: 1,
+                    sourceUrl: recipe.sourceUrl,
+                    source: 'ai_suggest',
+                    isUserMeal: false,
+                    forMembers: [kid.name],
+                    forMemberId: kid.id,
+                  });
+                }
+              }
+            } else {
+              // AI suggest only mode
+              if (kidAiPlan) {
+                const dayPlan = (kidAiPlan.week as any)[day];
+                const aiMealIndex = mealType === 'breakfast' ? 0 : mealType === 'lunch' ? 1 : 2;
+                const recipe = dayPlan?.meals?.[aiMealIndex];
+                if (recipe) {
+                  meals.push({
+                    date: dateStr,
+                    day,
+                    mealType,
+                    recipeId: `kid-${kid.id}-${recipe.id}`,
+                    recipeName: recipe.title,
+                    recipeImage: `https://spoonacular.com/recipeImages/${recipe.id}-312x231.jpg`,
+                    readyInMinutes: recipe.readyInMinutes,
+                    servings: 1,
+                    sourceUrl: recipe.sourceUrl,
+                    source: 'ai_suggest',
+                    isUserMeal: false,
+                    forMembers: [kid.name],
+                    forMemberId: kid.id,
+                  });
+                }
+              }
             }
           });
         }
@@ -328,6 +427,9 @@ export async function handler(event: any) {
     const endDate = new Date(start);
     endDate.setDate(start.getDate() + 6);
 
+    // Clean meal objects to remove undefined/null values for DynamoDB
+    const cleanedMeals = meals.map(cleanMealObject);
+
     // Save to DynamoDB (keyed by household, not user)
     await docClient.send(new PutCommand({
       TableName: MEAL_PLANS_TABLE,
@@ -336,7 +438,7 @@ export async function handler(event: any) {
         SK: `PLAN#${startDate}`,
         startDate,
         endDate: endDate.toISOString().split('T')[0],
-        meals,
+        meals: cleanedMeals,
         mealSuggestionMode,
         generatedBy: userId,
         generatedAt: new Date().toISOString(),
@@ -351,8 +453,14 @@ export async function handler(event: any) {
       meals,
       mealSuggestionMode,
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error('Error generating plan:', err);
+
+    // Check for Spoonacular quota exceeded (402)
+    if (err.message?.includes('402')) {
+      return error(429, 'Daily recipe quota exceeded. Please try again tomorrow or switch to "My Preferences Only" mode in Household Settings.');
+    }
+
     return error(500, 'Failed to generate meal plan');
   }
 }

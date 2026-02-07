@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, UserPlus, LogOut, Mail, Crown, User, Trash2, Settings, Sparkles, UserCog, Wand2, Save, Clock, FileText, Baby, AlertTriangle } from 'lucide-react';
+import { Users, UserPlus, LogOut, Mail, Crown, User, Trash2, Settings, Sparkles, UserCog, Wand2, Save, Clock, FileText, Baby, AlertTriangle, Pencil, X } from 'lucide-react';
 // Note: useNavigate removed as it was unused
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -128,6 +128,27 @@ export function HouseholdSettings() {
   const [newMemberMealInput, setNewMemberMealInput] = useState('');
   const [addingMember, setAddingMember] = useState(false);
   const [deletingMemberId, setDeletingMemberId] = useState<string | null>(null);
+
+  // Edit member state
+  const [editingMember, setEditingMember] = useState<FamilyMember | null>(null);
+  const [editMemberName, setEditMemberName] = useState('');
+  const [editMemberAge, setEditMemberAge] = useState('');
+  const [editMemberRestrictions, setEditMemberRestrictions] = useState('');
+  const [editMemberAllergies, setEditMemberAllergies] = useState('');
+  const [editMemberSameAsAdults, setEditMemberSameAsAdults] = useState(true);
+  const [editMemberMealTab, setEditMemberMealTab] = useState<'breakfast' | 'lunch' | 'dinner'>('breakfast');
+  const [editMemberBreakfast, setEditMemberBreakfast] = useState<string[]>([]);
+  const [editMemberLunch, setEditMemberLunch] = useState<string[]>([]);
+  const [editMemberDinner, setEditMemberDinner] = useState<string[]>([]);
+  const [editMemberMealInput, setEditMemberMealInput] = useState('');
+  const [savingMember, setSavingMember] = useState(false);
+
+  // Edit current user state
+  const [editingCurrentUser, setEditingCurrentUser] = useState(false);
+  const [editUserDisplayName, setEditUserDisplayName] = useState('');
+  const [editUserRestrictions, setEditUserRestrictions] = useState('');
+  const [editUserAllergies, setEditUserAllergies] = useState('');
+  const [savingUser, setSavingUser] = useState(false);
 
   const isAdmin = profile?.role === 'admin';
 
@@ -272,6 +293,100 @@ export function HouseholdSettings() {
     }
   };
 
+  const startEditMember = (member: FamilyMember) => {
+    setEditingMember(member);
+    setEditMemberName(member.name);
+    setEditMemberAge(member.age !== undefined ? String(member.age) : '');
+    setEditMemberRestrictions(member.dietaryRestrictions.join(', '));
+    setEditMemberAllergies(member.allergies.join(', '));
+    setEditMemberSameAsAdults(member.sameAsAdults);
+    setEditMemberBreakfast(member.mealPreferences?.breakfast || []);
+    setEditMemberLunch(member.mealPreferences?.lunch || []);
+    setEditMemberDinner(member.mealPreferences?.dinner || []);
+    setEditMemberMealTab('breakfast');
+    setEditMemberMealInput('');
+  };
+
+  const cancelEditMember = () => {
+    setEditingMember(null);
+    setEditMemberName('');
+    setEditMemberAge('');
+    setEditMemberRestrictions('');
+    setEditMemberAllergies('');
+    setEditMemberSameAsAdults(true);
+    setEditMemberBreakfast([]);
+    setEditMemberLunch([]);
+    setEditMemberDinner([]);
+    setEditMemberMealInput('');
+  };
+
+  const handleSaveEditMember = async () => {
+    if (!editingMember || !editMemberName.trim()) return;
+    setSavingMember(true);
+    try {
+      const restrictions = editMemberRestrictions.split(',').map(s => s.trim()).filter(Boolean);
+      const allergies = editMemberAllergies.split(',').map(s => s.trim()).filter(Boolean);
+      const age = editMemberAge ? parseInt(editMemberAge, 10) : undefined;
+      const mealPreferences = !editMemberSameAsAdults ? {
+        breakfast: editMemberBreakfast,
+        lunch: editMemberLunch,
+        dinner: editMemberDinner,
+      } : undefined;
+
+      const result = await familyApi.updateMember(editingMember.id, {
+        name: editMemberName.trim(),
+        age,
+        dietaryRestrictions: restrictions,
+        allergies: allergies,
+        sameAsAdults: editMemberSameAsAdults,
+        mealPreferences,
+      });
+
+      setFamilyMembers(prev => prev.map(m => m.id === editingMember.id ? result.member : m));
+      cancelEditMember();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to update family member');
+    } finally {
+      setSavingMember(false);
+    }
+  };
+
+  const startEditCurrentUser = () => {
+    setEditingCurrentUser(true);
+    setEditUserDisplayName(profile?.displayName || '');
+    setEditUserRestrictions((profile?.dietaryRestrictions || []).join(', '));
+    setEditUserAllergies((profile?.allergies || []).join(', '));
+  };
+
+  const cancelEditCurrentUser = () => {
+    setEditingCurrentUser(false);
+    setEditUserDisplayName('');
+    setEditUserRestrictions('');
+    setEditUserAllergies('');
+  };
+
+  const handleSaveCurrentUser = async () => {
+    setSavingUser(true);
+    try {
+      const restrictions = editUserRestrictions.split(',').map(s => s.trim()).filter(Boolean);
+      const allergies = editUserAllergies.split(',').map(s => s.trim()).filter(Boolean);
+
+      await userApi.saveProfile({
+        displayName: editUserDisplayName.trim() || undefined,
+        dietaryRestrictions: restrictions,
+        allergies: allergies,
+      });
+
+      // Refetch profile to update the UI
+      await refetch();
+      cancelEditCurrentUser();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to update profile');
+    } finally {
+      setSavingUser(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -299,77 +414,178 @@ export function HouseholdSettings() {
         </p>
       </div>
 
-      {/* Household Info */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            {household.name}
-          </CardTitle>
-          <CardDescription>
-            {household.users.length} member{household.users.length !== 1 ? 's' : ''}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {household.users.map((user) => (
-              <div
-                key={user.id}
-                className={`flex items-center justify-between p-3 rounded-lg border ${
-                  user.isCurrentUser ? 'bg-primary/5 border-primary/20' : ''
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                    {user.role === 'admin' ? (
-                      <Crown className="h-4 w-4 text-amber-500" />
-                    ) : (
-                      <User className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-medium">
-                      {user.displayName || user.email.split('@')[0]}
-                      {user.isCurrentUser && (
-                        <span className="text-muted-foreground text-sm ml-2">(you)</span>
-                      )}
-                    </p>
-                    <p className="text-sm text-muted-foreground">{user.email}</p>
-                  </div>
-                </div>
-                <span
-                  className={`text-xs px-2 py-1 rounded-full ${
-                    user.role === 'admin'
-                      ? 'bg-amber-100 text-amber-700'
-                      : 'bg-muted text-muted-foreground'
-                  }`}
-                >
-                  {user.role}
-                </span>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Family Members */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Baby className="h-5 w-5" />
+            <Users className="h-5 w-5" />
             Family Members
           </CardTitle>
           <CardDescription>
-            Add family members (like kids or toddlers) who may have different meal preferences.
-            Their dietary restrictions and allergies will be considered when generating meal plans.
+            Manage family members and their dietary preferences.
+            Each member's restrictions and allergies are considered when generating meal plans.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {familyMembers.length === 0 ? (
+          {/* Current User (Account Owner) */}
+          {household && household.users.filter(u => u.isCurrentUser).map(currentUser => (
+            <div
+              key={currentUser.id}
+              className="flex items-start justify-between p-4 rounded-lg border bg-primary/5 border-primary/20"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                  <User className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium">
+                    {profile?.displayName || currentUser.email.split('@')[0]}
+                    <span className="text-sm text-muted-foreground ml-2">(you)</span>
+                  </p>
+                  <p className="text-sm text-muted-foreground">{currentUser.email}</p>
+                  {profile?.dietaryRestrictions && profile.dietaryRestrictions.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {profile.dietaryRestrictions.map((r) => (
+                        <span key={r} className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
+                          {r}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {profile?.allergies && profile.allergies.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {profile.allergies.map((a) => (
+                        <span key={a} className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded-full flex items-center gap-1">
+                          <AlertTriangle className="h-3 w-3" />
+                          {a}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mt-2">
+                    <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">
+                      Account Owner
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={startEditCurrentUser}
+                className="text-muted-foreground hover:text-primary"
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+
+          {/* Edit Current User Modal */}
+          {editingCurrentUser && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+              <Card className="max-w-md w-full">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Edit Your Profile</CardTitle>
+                    <button
+                      onClick={cancelEditCurrentUser}
+                      className="p-1 hover:bg-muted rounded-full transition-colors"
+                    >
+                      <X className="h-5 w-5 text-muted-foreground" />
+                    </button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Display Name</label>
+                    <Input
+                      placeholder="Your name"
+                      value={editUserDisplayName}
+                      onChange={(e) => setEditUserDisplayName(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Dietary Restrictions</label>
+                    <Input
+                      placeholder="e.g., vegetarian, gluten-free (comma-separated)"
+                      value={editUserRestrictions}
+                      onChange={(e) => setEditUserRestrictions(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">These will be considered when generating meal plans</p>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Allergies</label>
+                    <Input
+                      placeholder="e.g., peanuts, shellfish (comma-separated)"
+                      value={editUserAllergies}
+                      onChange={(e) => setEditUserAllergies(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">Meals with these ingredients will be excluded</p>
+                  </div>
+                  <div className="flex gap-2 justify-end pt-4 border-t">
+                    <Button variant="outline" onClick={cancelEditCurrentUser}>
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleSaveCurrentUser}
+                      disabled={savingUser}
+                    >
+                      {savingUser ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Other Household Users */}
+          {household && household.users.filter(u => !u.isCurrentUser).map(user => (
+            <div
+              key={user.id}
+              className="flex items-start justify-between p-4 rounded-lg border bg-muted/30"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                  {user.role === 'admin' ? (
+                    <Crown className="h-5 w-5 text-amber-500" />
+                  ) : (
+                    <User className="h-5 w-5 text-muted-foreground" />
+                  )}
+                </div>
+                <div>
+                  <p className="font-medium">{user.displayName || user.email.split('@')[0]}</p>
+                  <p className="text-sm text-muted-foreground">{user.email}</p>
+                  <div className="mt-2">
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      user.role === 'admin' ? 'bg-amber-100 text-amber-700' : 'bg-muted text-muted-foreground'
+                    }`}>
+                      {user.role === 'admin' ? 'Admin' : 'Member'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {/* Divider if there are family members */}
+          {familyMembers.length > 0 && (
+            <div className="relative py-2">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-muted"></div>
+              </div>
+              <div className="relative flex justify-center">
+                <span className="px-3 bg-card text-sm text-muted-foreground">Additional Family Members</span>
+              </div>
+            </div>
+          )}
+
+          {familyMembers.length === 0 && (
             <p className="text-sm text-muted-foreground py-4 text-center">
-              No family members added yet. Add family members who have different dietary needs.
+              No additional family members added yet. Add kids or others who have different dietary needs.
             </p>
-          ) : (
+          )}
+
+          {familyMembers.length > 0 && (
             <div className="space-y-3">
               {familyMembers.map((member) => (
                 <div
@@ -448,21 +664,238 @@ export function HouseholdSettings() {
                       )}
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDeleteMember(member.id)}
-                    disabled={deletingMemberId === member.id}
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    {deletingMemberId === member.id ? (
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    ) : (
-                      <Trash2 className="h-4 w-4" />
-                    )}
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => startEditMember(member)}
+                      className="text-muted-foreground hover:text-primary"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteMember(member.id)}
+                      disabled={deletingMemberId === member.id}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      {deletingMemberId === member.id ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Edit Member Modal */}
+          {editingMember && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+              <Card className="max-w-lg w-full max-h-[90vh] overflow-y-auto">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Edit Family Member</CardTitle>
+                    <button
+                      onClick={cancelEditMember}
+                      className="p-1 hover:bg-muted rounded-full transition-colors"
+                    >
+                      <X className="h-5 w-5 text-muted-foreground" />
+                    </button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Name *</label>
+                      <Input
+                        placeholder="e.g., Emma, Baby Jake"
+                        value={editMemberName}
+                        onChange={(e) => setEditMemberName(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Age</label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="120"
+                        placeholder="e.g., 2"
+                        value={editMemberAge}
+                        onChange={(e) => setEditMemberAge(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Dietary Restrictions</label>
+                    <Input
+                      placeholder="e.g., vegetarian, no spicy food (comma-separated)"
+                      value={editMemberRestrictions}
+                      onChange={(e) => setEditMemberRestrictions(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Allergies</label>
+                    <Input
+                      placeholder="e.g., peanuts, dairy (comma-separated)"
+                      value={editMemberAllergies}
+                      onChange={(e) => setEditMemberAllergies(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Meal Preference</label>
+                    <button
+                      type="button"
+                      onClick={() => setEditMemberSameAsAdults(!editMemberSameAsAdults)}
+                      className={`w-full p-4 rounded-lg border text-left transition-colors flex items-center justify-between ${
+                        editMemberSameAsAdults
+                          ? 'bg-green-50 border-green-300'
+                          : 'bg-purple-50 border-purple-300'
+                      }`}
+                    >
+                      <div>
+                        <p className="font-medium">
+                          {editMemberSameAsAdults ? 'Eats same food as adults' : 'Needs different meals'}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {editMemberSameAsAdults
+                            ? 'Will share the same meals as everyone else'
+                            : 'Will have separate, age-appropriate meals in the plan'}
+                        </p>
+                      </div>
+                      <div className={`h-6 w-11 rounded-full transition-colors ${
+                        editMemberSameAsAdults ? 'bg-green-500' : 'bg-purple-500'
+                      } relative`}>
+                        <div className={`h-5 w-5 bg-white rounded-full absolute top-0.5 transition-transform ${
+                          editMemberSameAsAdults ? 'left-0.5' : 'left-5'
+                        }`} />
+                      </div>
+                    </button>
+                  </div>
+
+                  {/* Meal preferences for members with different meals */}
+                  {!editMemberSameAsAdults && (
+                    <div className="space-y-3 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                      <p className="text-sm font-medium text-purple-800">
+                        What does {editMemberName || 'this member'} typically eat?
+                      </p>
+
+                      {/* Tabs */}
+                      <div className="flex gap-1 bg-purple-100 p-1 rounded-lg">
+                        {(['breakfast', 'lunch', 'dinner'] as const).map((tab) => (
+                          <button
+                            key={tab}
+                            type="button"
+                            onClick={() => setEditMemberMealTab(tab)}
+                            className={`flex-1 px-3 py-2 rounded-md text-sm font-medium capitalize transition-colors ${
+                              editMemberMealTab === tab
+                                ? 'bg-white text-purple-700 shadow-sm'
+                                : 'text-purple-600 hover:text-purple-800'
+                            }`}
+                          >
+                            {tab}
+                            {(tab === 'breakfast' ? editMemberBreakfast : tab === 'lunch' ? editMemberLunch : editMemberDinner).length > 0 && (
+                              <span className="ml-1 text-xs">({(tab === 'breakfast' ? editMemberBreakfast : tab === 'lunch' ? editMemberLunch : editMemberDinner).length})</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Input for current tab */}
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder={`e.g., ${editMemberMealTab === 'breakfast' ? 'cereal, fruit, toast' : editMemberMealTab === 'lunch' ? 'mac and cheese, sandwiches' : 'pasta, chicken nuggets'}`}
+                          value={editMemberMealInput}
+                          onChange={(e) => setEditMemberMealInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && editMemberMealInput.trim()) {
+                              e.preventDefault();
+                              const items = editMemberMealInput.split(',').map(v => v.trim()).filter(Boolean);
+                              if (editMemberMealTab === 'breakfast') {
+                                setEditMemberBreakfast(prev => [...new Set([...prev, ...items])]);
+                              } else if (editMemberMealTab === 'lunch') {
+                                setEditMemberLunch(prev => [...new Set([...prev, ...items])]);
+                              } else {
+                                setEditMemberDinner(prev => [...new Set([...prev, ...items])]);
+                              }
+                              setEditMemberMealInput('');
+                            }
+                          }}
+                          className="flex-1 bg-white"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            if (editMemberMealInput.trim()) {
+                              const items = editMemberMealInput.split(',').map(v => v.trim()).filter(Boolean);
+                              if (editMemberMealTab === 'breakfast') {
+                                setEditMemberBreakfast(prev => [...new Set([...prev, ...items])]);
+                              } else if (editMemberMealTab === 'lunch') {
+                                setEditMemberLunch(prev => [...new Set([...prev, ...items])]);
+                              } else {
+                                setEditMemberDinner(prev => [...new Set([...prev, ...items])]);
+                              }
+                              setEditMemberMealInput('');
+                            }
+                          }}
+                          className="bg-white"
+                        >
+                          Add
+                        </Button>
+                      </div>
+
+                      {/* Tags for current tab */}
+                      {(editMemberMealTab === 'breakfast' ? editMemberBreakfast : editMemberMealTab === 'lunch' ? editMemberLunch : editMemberDinner).length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {(editMemberMealTab === 'breakfast' ? editMemberBreakfast : editMemberMealTab === 'lunch' ? editMemberLunch : editMemberDinner).map((item) => (
+                            <span
+                              key={item}
+                              className={`px-3 py-1 rounded-full text-sm flex items-center gap-1 ${
+                                editMemberMealTab === 'breakfast' ? 'bg-orange-100 text-orange-700' :
+                                editMemberMealTab === 'lunch' ? 'bg-green-100 text-green-700' :
+                                'bg-blue-100 text-blue-700'
+                              }`}
+                            >
+                              {item}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (editMemberMealTab === 'breakfast') {
+                                    setEditMemberBreakfast(prev => prev.filter(i => i !== item));
+                                  } else if (editMemberMealTab === 'lunch') {
+                                    setEditMemberLunch(prev => prev.filter(i => i !== item));
+                                  } else {
+                                    setEditMemberDinner(prev => prev.filter(i => i !== item));
+                                  }
+                                }}
+                                className="hover:opacity-70"
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 justify-end pt-4 border-t">
+                    <Button variant="outline" onClick={cancelEditMember}>
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleSaveEditMember}
+                      disabled={!editMemberName.trim() || savingMember}
+                    >
+                      {savingMember ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
 

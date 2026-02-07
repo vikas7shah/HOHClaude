@@ -6,6 +6,8 @@ interface Profile {
   displayName: string | null;
   householdId: string | null;
   role: 'admin' | 'member' | null;
+  dietaryRestrictions: string[];
+  allergies: string[];
 }
 
 interface Household {

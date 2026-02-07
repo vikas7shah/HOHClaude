@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { RefreshCw, ChevronLeft, ChevronRight, ExternalLink, User, Sparkles, AlertCircle, Baby, Users, AlertTriangle } from 'lucide-react';
+import { RefreshCw, ChevronLeft, ChevronRight, ExternalLink, User, Sparkles, AlertCircle, Baby, Users, AlertTriangle, Shuffle, Pencil, X, Check, Loader2 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
 import { mealsApi, userApi, familyApi } from '../lib/api';
 import { formatDate, getWeekStart, addDays } from '../lib/utils';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snacks'];
+const MEAL_TYPES = ['breakfast', 'lunch', 'dinner'];
 
 interface FamilyMember {
   id: string;
@@ -35,6 +36,7 @@ interface Meal {
 
 export function MealPlan() {
   const [weekStart, setWeekStart] = useState(() => getWeekStart());
+  const [planStartDate, setPlanStartDate] = useState<string | null>(null);
   const [meals, setMeals] = useState<Meal[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -43,16 +45,27 @@ export function MealPlan() {
   const [planGeneratedMode, setPlanGeneratedMode] = useState<string | null>(null);
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
 
+  // Swap/Edit state
+  const [isEditing, setIsEditing] = useState(false);
+  const [customMealName, setCustomMealName] = useState('');
+  const [isSwapping, setIsSwapping] = useState(false);
+  const [isSavingCustom, setIsSavingCustom] = useState(false);
+
+  // Error state
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const loadPlan = async () => {
     setLoading(true);
     try {
       const data = await mealsApi.getPlan(formatDate(weekStart));
       setMeals(data.plan?.meals || []);
       setPlanGeneratedMode(data.plan?.mealSuggestionMode || null);
+      setPlanStartDate(data.plan?.startDate || formatDate(weekStart));
     } catch (err) {
       console.error('Failed to load meal plan:', err);
       setMeals([]);
       setPlanGeneratedMode(null);
+      setPlanStartDate(null);
     } finally {
       setLoading(false);
     }
@@ -87,15 +100,97 @@ export function MealPlan() {
 
   const generatePlan = async () => {
     setGenerating(true);
+    setErrorMessage(null);
     try {
-      const data = await mealsApi.generatePlan(formatDate(weekStart));
+      const startDate = formatDate(weekStart);
+      const data = await mealsApi.generatePlan(startDate);
       setMeals(data.meals || []);
       setPlanGeneratedMode(data.mealSuggestionMode || currentPreferenceMode);
-    } catch (err) {
+      setPlanStartDate(startDate);
+    } catch (err: any) {
       console.error('Failed to generate meal plan:', err);
+      setErrorMessage(err.message || 'Failed to generate meal plan. Please try again.');
     } finally {
       setGenerating(false);
     }
+  };
+
+  // Handle swapping a meal with a new AI suggestion
+  const handleSwapMeal = async () => {
+    if (!selectedMeal || !planStartDate) return;
+
+    setIsSwapping(true);
+    try {
+      const result = await mealsApi.updateMeal({
+        startDate: planStartDate,
+        date: selectedMeal.date,
+        mealType: selectedMeal.mealType,
+        action: 'swap',
+        forMemberId: selectedMeal.forMemberId,
+      });
+
+      // Update the meals list with the new meal
+      setMeals(prevMeals =>
+        prevMeals.map(m =>
+          m.date === selectedMeal.date &&
+          m.mealType === selectedMeal.mealType &&
+          m.forMemberId === selectedMeal.forMemberId
+            ? result.meal
+            : m
+        )
+      );
+
+      // Update selected meal to show the new one
+      setSelectedMeal(result.meal);
+    } catch (err) {
+      console.error('Failed to swap meal:', err);
+    } finally {
+      setIsSwapping(false);
+    }
+  };
+
+  // Handle saving a custom meal name
+  const handleSaveCustomMeal = async () => {
+    if (!selectedMeal || !planStartDate || !customMealName.trim()) return;
+
+    setIsSavingCustom(true);
+    try {
+      const result = await mealsApi.updateMeal({
+        startDate: planStartDate,
+        date: selectedMeal.date,
+        mealType: selectedMeal.mealType,
+        action: 'custom',
+        customMealName: customMealName.trim(),
+        forMemberId: selectedMeal.forMemberId,
+      });
+
+      // Update the meals list with the custom meal
+      setMeals(prevMeals =>
+        prevMeals.map(m =>
+          m.date === selectedMeal.date &&
+          m.mealType === selectedMeal.mealType &&
+          m.forMemberId === selectedMeal.forMemberId
+            ? result.meal
+            : m
+        )
+      );
+
+      // Update selected meal and exit edit mode
+      setSelectedMeal(result.meal);
+      setIsEditing(false);
+      setCustomMealName('');
+    } catch (err) {
+      console.error('Failed to save custom meal:', err);
+    } finally {
+      setIsSavingCustom(false);
+    }
+  };
+
+  // Reset edit state when modal closes
+  const handleCloseModal = () => {
+    setSelectedMeal(null);
+    setIsEditing(false);
+    setCustomMealName('');
   };
 
   const getModeLabel = (mode: string) => {
@@ -143,6 +238,25 @@ export function MealPlan() {
           </Button>
         </div>
       </div>
+
+      {/* Error Banner */}
+      {errorMessage && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-medium text-red-800">Unable to generate meal plan</p>
+              <p className="text-sm text-red-700 mt-1">{errorMessage}</p>
+            </div>
+            <button
+              onClick={() => setErrorMessage(null)}
+              className="p-1 hover:bg-red-100 rounded-full transition-colors"
+            >
+              <X className="h-4 w-4 text-red-600" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Preferences Changed Banner */}
       {preferencesChanged && meals.length > 0 && (
@@ -360,32 +474,73 @@ export function MealPlan() {
       {selectedMeal && (
         <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-          onClick={() => setSelectedMeal(null)}
+          onClick={handleCloseModal}
         >
           <Card className="max-w-md w-full" onClick={e => e.stopPropagation()}>
             <CardHeader>
-              <div className="flex items-center gap-2 flex-wrap">
-                {selectedMeal.isUserMeal || selectedMeal.source === 'user_preference' ? (
-                  <span className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full flex items-center gap-1">
-                    <User className="h-3 w-3" /> Your Preference
-                  </span>
-                ) : (
-                  <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full flex items-center gap-1">
-                    <Sparkles className="h-3 w-3" /> AI Suggested
-                  </span>
-                )}
-                {selectedMeal.forMembers && (
-                  <span className={`px-2 py-1 text-xs rounded-full flex items-center gap-1 ${
-                    selectedMeal.forMemberId
-                      ? 'bg-purple-100 text-purple-700'
-                      : 'bg-green-100 text-green-700'
-                  }`}>
-                    <Users className="h-3 w-3" />
-                    {selectedMeal.forMembers.join(', ')}
-                  </span>
-                )}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {selectedMeal.isUserMeal || selectedMeal.source === 'user_preference' ? (
+                    <span className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full flex items-center gap-1">
+                      <User className="h-3 w-3" /> Your Preference
+                    </span>
+                  ) : (
+                    <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full flex items-center gap-1">
+                      <Sparkles className="h-3 w-3" /> AI Suggested
+                    </span>
+                  )}
+                  {selectedMeal.forMembers && (
+                    <span className={`px-2 py-1 text-xs rounded-full flex items-center gap-1 ${
+                      selectedMeal.forMemberId
+                        ? 'bg-purple-100 text-purple-700'
+                        : 'bg-green-100 text-green-700'
+                    }`}>
+                      <Users className="h-3 w-3" />
+                      {selectedMeal.forMembers.join(', ')}
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={handleCloseModal}
+                  className="p-1 hover:bg-muted rounded-full transition-colors"
+                >
+                  <X className="h-5 w-5 text-muted-foreground" />
+                </button>
               </div>
-              <CardTitle className="mt-2">{selectedMeal.recipeName}</CardTitle>
+              {isEditing ? (
+                <div className="mt-3 flex gap-2">
+                  <Input
+                    value={customMealName}
+                    onChange={(e) => setCustomMealName(e.target.value)}
+                    placeholder="Enter your meal name..."
+                    className="flex-1"
+                    autoFocus
+                  />
+                  <Button
+                    size="sm"
+                    onClick={handleSaveCustomMeal}
+                    disabled={!customMealName.trim() || isSavingCustom}
+                  >
+                    {isSavingCustom ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setIsEditing(false);
+                      setCustomMealName('');
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <CardTitle className="mt-2">{selectedMeal.recipeName}</CardTitle>
+              )}
             </CardHeader>
             <CardContent className="space-y-4">
               {selectedMeal.recipeImage ? (
@@ -420,13 +575,45 @@ export function MealPlan() {
                 </div>
               )}
 
-              {selectedMeal.isUserMeal && (
+              {/* Swap & Edit Actions */}
+              <div className="border-t pt-4">
+                <p className="text-sm font-medium text-muted-foreground mb-3">Don't like this meal?</p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1 gap-2"
+                    onClick={handleSwapMeal}
+                    disabled={isSwapping}
+                  >
+                    {isSwapping ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Shuffle className="h-4 w-4" />
+                    )}
+                    {isSwapping ? 'Finding...' : 'Swap for Another'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 gap-2"
+                    onClick={() => {
+                      setIsEditing(true);
+                      setCustomMealName(selectedMeal.recipeName);
+                    }}
+                    disabled={isEditing}
+                  >
+                    <Pencil className="h-4 w-4" />
+                    Enter My Own
+                  </Button>
+                </div>
+              </div>
+
+              {selectedMeal.isUserMeal && !isEditing && (
                 <p className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
                   This is one of your typical meals. You can search for recipes online or use your own favorite recipe!
                 </p>
               )}
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 border-t pt-4">
                 {selectedMeal.sourceUrl && (
                   <a
                     href={selectedMeal.sourceUrl}
@@ -440,7 +627,7 @@ export function MealPlan() {
                     </Button>
                   </a>
                 )}
-                <Button variant="ghost" onClick={() => setSelectedMeal(null)}>
+                <Button variant="ghost" onClick={handleCloseModal}>
                   Close
                 </Button>
               </div>

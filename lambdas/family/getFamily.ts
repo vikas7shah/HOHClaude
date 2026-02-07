@@ -30,6 +30,7 @@ export async function handler(event: any) {
       likes: item.likes || [],
       dislikes: item.dislikes || [],
       sameAsAdults: item.sameAsAdults !== undefined ? item.sameAsAdults : true,
+      mealPreferences: item.mealPreferences || null,
     }));
 
     return success({ members });

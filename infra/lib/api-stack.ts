@@ -159,6 +159,13 @@ export class ApiStack extends cdk.Stack {
     });
     usersTable.grantReadWriteData(deleteMemberFn);
 
+    const updateMemberFn = new nodejs.NodejsFunction(this, 'UpdateMemberFn', {
+      ...commonLambdaProps,
+      entry: path.join(__dirname, '../../lambdas/family/updateMember.ts'),
+      handler: 'handler',
+    });
+    usersTable.grantReadWriteData(updateMemberFn);
+
     // ============ MEAL PLAN ENDPOINTS ============
 
     const generatePlanFn = new nodejs.NodejsFunction(this, 'GeneratePlanFn', {
@@ -177,6 +184,15 @@ export class ApiStack extends cdk.Stack {
     });
     usersTable.grantReadData(getPlanFn);
     mealPlansTable.grantReadData(getPlanFn);
+
+    const updateMealFn = new nodejs.NodejsFunction(this, 'UpdateMealFn', {
+      ...commonLambdaProps,
+      entry: path.join(__dirname, '../../lambdas/meals/updateMeal.ts'),
+      handler: 'handler',
+      timeout: cdk.Duration.seconds(30),
+    });
+    usersTable.grantReadData(updateMealFn);
+    mealPlansTable.grantReadWriteData(updateMealFn);
 
     // ============ AI AGENT ENDPOINT ============
 
@@ -253,6 +269,7 @@ export class ApiStack extends cdk.Stack {
 
     const memberResource = familyResource.addResource('{memberId}');
     memberResource.addMethod('DELETE', new apigateway.LambdaIntegration(deleteMemberFn), authMethodOptions);
+    memberResource.addMethod('PUT', new apigateway.LambdaIntegration(updateMemberFn), authMethodOptions);
 
     // /meals
     const mealsResource = this.api.root.addResource('meals');
@@ -261,6 +278,10 @@ export class ApiStack extends cdk.Stack {
 
     const planResource = mealsResource.addResource('plan');
     planResource.addMethod('GET', new apigateway.LambdaIntegration(getPlanFn), authMethodOptions);
+
+    // /meals/update - for swapping or customizing individual meals
+    const updateMealResource = mealsResource.addResource('update');
+    updateMealResource.addMethod('POST', new apigateway.LambdaIntegration(updateMealFn), authMethodOptions);
 
     // /agent
     const agentResource = this.api.root.addResource('agent');

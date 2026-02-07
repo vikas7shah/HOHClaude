@@ -78,15 +78,36 @@ export async function getRecipeDetails(recipeId: number) {
   return response.json();
 }
 
-export async function searchRecipes(query: string, diet?: string, excludeIngredients?: string) {
+interface SearchRecipesOptions {
+  query?: string;
+  diet?: string;
+  excludeIngredients?: string;
+  number?: number;
+  offset?: number;
+  addRecipeInformation?: boolean;
+  type?: string;
+}
+
+export async function searchRecipes(options: SearchRecipesOptions | string, diet?: string, excludeIngredients?: string) {
+  // Support both old signature (query, diet, excludeIngredients) and new options object
+  const opts: SearchRecipesOptions = typeof options === 'string'
+    ? { query: options, diet, excludeIngredients }
+    : options;
+
   const params = new URLSearchParams({
     apiKey: API_KEY!,
-    query,
-    number: '10',
   });
 
-  if (diet) params.append('diet', diet);
-  if (excludeIngredients) params.append('excludeIngredients', excludeIngredients);
+  if (opts.query) params.append('query', opts.query);
+  if (opts.diet) params.append('diet', opts.diet);
+  if (opts.excludeIngredients) params.append('excludeIngredients', opts.excludeIngredients);
+  if (opts.number) params.append('number', opts.number.toString());
+  if (opts.offset) params.append('offset', opts.offset.toString());
+  if (opts.addRecipeInformation) params.append('addRecipeInformation', 'true');
+  if (opts.type) params.append('type', opts.type);
+
+  // Default number if not specified
+  if (!opts.number) params.append('number', '10');
 
   const response = await fetch(`${SPOONACULAR_BASE_URL}/recipes/complexSearch?${params}`);
 

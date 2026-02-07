@@ -6,7 +6,7 @@ export async function handler(event: any) {
     const email = getUserEmail(event);
     const body = JSON.parse(event.body || '{}');
 
-    const { displayName } = body;
+    const { displayName, dietaryRestrictions, allergies } = body;
 
     // Get existing profile to preserve household info
     const existingProfile = await getUserProfile(userId);
@@ -18,9 +18,11 @@ export async function handler(event: any) {
         PK: `USER#${userId}`,
         SK: 'PROFILE',
         email,
-        displayName: displayName || existingProfile?.displayName || email.split('@')[0],
+        displayName: displayName !== undefined ? displayName : (existingProfile?.displayName || email.split('@')[0]),
         householdId: existingProfile?.householdId || null,
         role: existingProfile?.role || null,
+        dietaryRestrictions: dietaryRestrictions !== undefined ? dietaryRestrictions : (existingProfile?.dietaryRestrictions || []),
+        allergies: allergies !== undefined ? allergies : (existingProfile?.allergies || []),
         GSI1PK: existingProfile?.GSI1PK || null,
         GSI1SK: existingProfile?.GSI1SK || null,
         createdAt: existingProfile?.createdAt || now,

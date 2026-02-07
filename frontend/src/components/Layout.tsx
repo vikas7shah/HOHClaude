@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { signOut } from 'aws-amplify/auth';
-import { Home, CalendarDays, Users, LogOut, Sparkles } from 'lucide-react';
+import { Home, CalendarDays, Users, LogOut, Package, ShoppingCart } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useProfile } from '../hooks/useProfile';
 
@@ -16,7 +16,8 @@ export function Layout({ children }: LayoutProps) {
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home },
     { name: 'Meal Plan', href: '/meal-plan', icon: CalendarDays },
-    { name: 'AI Assistant', href: '/meal-agent', icon: Sparkles },
+    { name: 'Pantry', href: '/pantry', icon: Package },
+    { name: 'Grocery List', href: '/grocery-list', icon: ShoppingCart },
     { name: 'Household', href: '/household', icon: Users },
   ];
 
