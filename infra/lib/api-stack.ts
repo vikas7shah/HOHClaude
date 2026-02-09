@@ -5,6 +5,7 @@ import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import { Construct } from 'constructs';
 import * as path from 'path';
 
@@ -22,6 +23,11 @@ export class ApiStack extends cdk.Stack {
     super(scope, id, props);
 
     const { userPool, usersTable, mealPlansTable } = props;
+
+    // Reference existing Spoonacular API key secret
+    const spoonacularSecret = secretsmanager.Secret.fromSecretNameV2(
+      this, 'SpoonacularSecret', 'hoh/spoonacular-api-key'
+    );
 
     // Allowed origins for CORS - restrict to production domain only
     const allowedOrigins = [
@@ -60,7 +66,7 @@ export class ApiStack extends cdk.Stack {
       environment: {
         USERS_TABLE: usersTable.tableName,
         MEAL_PLANS_TABLE: mealPlansTable.tableName,
-        SPOONACULAR_API_KEY: process.env.SPOONACULAR_API_KEY || '',
+        SPOONACULAR_SECRET_NAME: 'hoh/spoonacular-api-key',
         ALLOWED_ORIGINS: allowedOrigins.join(','),
       },
       bundling: {
@@ -185,10 +191,11 @@ export class ApiStack extends cdk.Stack {
       ...commonLambdaProps,
       entry: path.join(__dirname, '../../lambdas/meals/generatePlan.ts'),
       handler: 'handler',
-      timeout: cdk.Duration.seconds(60),
+      timeout: cdk.Duration.seconds(90), // Extended for agent invocation
     });
     usersTable.grantReadData(generatePlanFn);
     mealPlansTable.grantReadWriteData(generatePlanFn);
+    spoonacularSecret.grantRead(generatePlanFn);
 
     const getPlanFn = new nodejs.NodejsFunction(this, 'GetPlanFn', {
       ...commonLambdaProps,
@@ -206,6 +213,7 @@ export class ApiStack extends cdk.Stack {
     });
     usersTable.grantReadData(updateMealFn);
     mealPlansTable.grantReadWriteData(updateMealFn);
+    spoonacularSecret.grantRead(updateMealFn);
 
     // ============ AI AGENT ENDPOINT ============
 
@@ -222,11 +230,15 @@ export class ApiStack extends cdk.Stack {
       environment: {
         USERS_TABLE: usersTable.tableName,
         MEAL_PLANS_TABLE: mealPlansTable.tableName,
-        SPOONACULAR_API_KEY: process.env.SPOONACULAR_API_KEY || '',
-        MODEL_ID: 'us.anthropic.claude-sonnet-4-5-20250929-v1:0',
+        SPOONACULAR_SECRET_NAME: 'hoh/spoonacular-api-key',
+        MODEL_ID: 'us.anthropic.claude-3-5-haiku-20241022-v1:0', // Using Haiku for cost efficiency
+        ALLOWED_ORIGINS: allowedOrigins.join(','),
         LOG_LEVEL: 'INFO',
       },
     });
+
+    // Grant Secrets Manager access to agent for Spoonacular API key
+    spoonacularSecret.grantRead(mealAgentFn);
 
     // Grant DynamoDB access
     usersTable.grantReadWriteData(mealAgentFn);
@@ -244,6 +256,12 @@ export class ApiStack extends cdk.Stack {
         'arn:aws:bedrock:*:*:inference-profile/*',
       ],
     }));
+
+    // Allow generatePlanFn to invoke the meal agent
+    mealAgentFn.grantInvoke(generatePlanFn);
+
+    // Add environment variable to generatePlanFn with the agent function name
+    generatePlanFn.addEnvironment('MEAL_AGENT_FUNCTION_NAME', mealAgentFn.functionName);
 
     // ============ ROUTE SETUP ============
 

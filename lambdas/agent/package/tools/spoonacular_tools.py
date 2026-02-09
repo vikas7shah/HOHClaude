@@ -6,20 +6,40 @@ and generate meal plans using the Spoonacular API.
 """
 
 import os
+import json
 import httpx
+import boto3
 from strands import tool
 from typing import Optional
 
 SPOONACULAR_BASE_URL = 'https://api.spoonacular.com'
-API_KEY = os.getenv('SPOONACULAR_API_KEY')
+
+# Cache API key to avoid repeated Secrets Manager calls
+_cached_api_key = None
 
 
 def _get_api_key() -> str:
-    """Get API key, raising error if not configured."""
-    key = os.getenv('SPOONACULAR_API_KEY')
-    if not key:
-        raise ValueError("SPOONACULAR_API_KEY environment variable not set")
-    return key
+    """Get API key from Secrets Manager, with caching."""
+    global _cached_api_key
+
+    if _cached_api_key:
+        return _cached_api_key
+
+    secret_name = os.getenv('SPOONACULAR_SECRET_NAME', 'hoh/spoonacular-api-key')
+    region = os.getenv('AWS_REGION', 'us-east-1')
+
+    try:
+        client = boto3.client('secretsmanager', region_name=region)
+        response = client.get_secret_value(SecretId=secret_name)
+        secret = json.loads(response['SecretString'])
+        _cached_api_key = secret.get('api_key')
+
+        if not _cached_api_key:
+            raise ValueError("api_key not found in secret")
+
+        return _cached_api_key
+    except Exception as e:
+        raise ValueError(f"Failed to retrieve Spoonacular API key: {e}")
 
 
 # Map common dietary restrictions to Spoonacular diet parameter
@@ -67,7 +87,7 @@ def search_recipes(
 
     Args:
         query: Search query for recipes (e.g., "pasta", "chicken dinner", "quick breakfast")
-        cuisine: Cuisine type (e.g., "italian", "mexican", "asian", "mediterranean", "american")
+        cuisine: Cuisine type (e.g., "italian", "mexican", "asian", "mediterranean", "american", "indian")
         diet: Dietary restriction (e.g., "vegetarian", "vegan", "gluten free", "ketogenic", "paleo")
         intolerances: Comma-separated allergies to avoid (e.g., "dairy,gluten,peanut,shellfish")
         exclude_ingredients: Comma-separated ingredients to exclude (e.g., "mushrooms,olives")

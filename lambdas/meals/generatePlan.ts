@@ -1,5 +1,8 @@
+import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import { docClient, USERS_TABLE, MEAL_PLANS_TABLE, getUserId, requireHouseholdId, success, error, QueryCommand, GetCommand, PutCommand } from '../shared/dynamo';
 import { generateMealPlan, mapDietaryRestrictions, mapAllergiesToExclude } from '../shared/spoonacular';
+
+const lambdaClient = new LambdaClient({ region: process.env.AWS_REGION || 'us-east-1' });
 
 // Helper to pick random item from array
 function pickRandom<T>(arr: T[]): T {
@@ -22,12 +25,58 @@ function cleanMealObject(meal: any): any {
   return cleaned;
 }
 
+/**
+ * Generate meal plan using the AI Agent (Claude Haiku).
+ * The agent understands additional preferences and intelligently plans meals.
+ */
+async function generateWithAgent(event: any, startDate: string): Promise<any> {
+  console.log('Generating meal plan using AI Agent...');
+
+  try {
+    // Invoke the meal agent Lambda with generate action
+    const agentFunctionName = process.env.MEAL_AGENT_FUNCTION_NAME || 'HohApiStack-MealAgentFn';
+
+    const invokeCommand = new InvokeCommand({
+      FunctionName: agentFunctionName,
+      InvocationType: 'RequestResponse',
+      Payload: JSON.stringify({
+        ...event,
+        body: JSON.stringify({
+          action: 'generate',
+          startDate,
+        }),
+      }),
+    });
+
+    const response = await lambdaClient.send(invokeCommand);
+
+    if (response.Payload) {
+      const payloadString = new TextDecoder().decode(response.Payload);
+      const result = JSON.parse(payloadString);
+
+      if (result.statusCode === 200) {
+        const body = JSON.parse(result.body);
+        return { success: true, data: body };
+      } else {
+        const errorBody = JSON.parse(result.body);
+        console.error('Agent returned error:', errorBody);
+        return { success: false, error: errorBody.error || 'Agent failed' };
+      }
+    }
+
+    return { success: false, error: 'No response from agent' };
+  } catch (err) {
+    console.error('Error invoking agent:', err);
+    return { success: false, error: String(err) };
+  }
+}
+
 export async function handler(event: any) {
   try {
     const userId = getUserId(event);
     const body = JSON.parse(event.body || '{}');
 
-    const { startDate } = body; // YYYY-MM-DD format
+    const { startDate, useAgent = true } = body; // YYYY-MM-DD format, default to using agent
 
     if (!startDate) {
       return error(400, 'startDate is required (YYYY-MM-DD)', event);
@@ -41,7 +90,7 @@ export async function handler(event: any) {
       return error(400, 'You must be part of a household to generate meal plans', event);
     }
 
-    // Get household preferences
+    // Get household preferences to check if additional preferences exist
     const prefsResult = await docClient.send(new GetCommand({
       TableName: USERS_TABLE,
       Key: { PK: `HOUSEHOLD#${householdId}`, SK: 'PREFERENCES' },
@@ -49,16 +98,34 @@ export async function handler(event: any) {
 
     const preferences = prefsResult.Item || {};
     const mealSuggestionMode = preferences.mealSuggestionMode || 'ai_and_user';
-    const cookingTime = preferences.cookingTime || 'medium';
     const additionalPreferences: string = preferences.additionalPreferences || '';
+
+    // Log the mode being used
+    console.log('Generating meal plan with mode:', mealSuggestionMode);
+    console.log('Additional preferences:', additionalPreferences);
+
+    // Always use AI Agent for intelligent meal generation
+    // The agent will understand additional preferences and plan accordingly
+    if (useAgent) {
+      const agentResult = await generateWithAgent(event, startDate);
+
+      if (agentResult.success) {
+        return success(agentResult.data, event);
+      }
+
+      // If agent fails, log but continue with fallback
+      console.warn('Agent generation failed, falling back to direct API:', agentResult.error);
+    }
+
+    // FALLBACK: Direct Spoonacular API call (original logic)
+    // This is used if the agent fails or is explicitly disabled
+    console.log('Using fallback direct Spoonacular API...');
+
+    const cookingTime = preferences.cookingTime || 'medium';
     const typicalBreakfast: string[] = preferences.typicalBreakfast || [];
     const typicalLunch: string[] = preferences.typicalLunch || [];
     const typicalDinner: string[] = preferences.typicalDinner || [];
     const typicalSnacks: string[] = preferences.typicalSnacks || [];
-
-    // Log the mode being used
-    console.log('Generating meal plan with mode:', mealSuggestionMode);
-    console.log('Preferences from DB:', JSON.stringify(preferences));
 
     // Map cooking time to max ready time in minutes
     const maxReadyTime = cookingTime === 'quick' ? 20 : cookingTime === 'medium' ? 45 : 120;
@@ -442,6 +509,7 @@ export async function handler(event: any) {
         mealSuggestionMode,
         generatedBy: userId,
         generatedAt: new Date().toISOString(),
+        generatedByAgent: false, // Fallback method
         // TTL: auto-delete after 90 days
         ttl: Math.floor(Date.now() / 1000) + (90 * 24 * 60 * 60),
       },
