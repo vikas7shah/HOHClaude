@@ -21,9 +21,9 @@ export async function handler(event: any) {
       invitedAt: item.invitedAt,
     }));
 
-    return success({ invites });
+    return success({ invites }, event);
   } catch (err) {
     console.error('Error getting invites:', err);
-    return error(500, 'Failed to get invites');
+    return error(500, 'Failed to get invites', event);
   }
 }

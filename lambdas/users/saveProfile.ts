@@ -30,9 +30,9 @@ export async function handler(event: any) {
       },
     }));
 
-    return success({ message: 'Profile saved' });
+    return success({ message: 'Profile saved' }, event);
   } catch (err) {
     console.error('Error saving profile:', err);
-    return error(500, 'Failed to save profile');
+    return error(500, 'Failed to save profile', event);
   }
 }

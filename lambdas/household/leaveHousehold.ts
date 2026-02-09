@@ -6,7 +6,7 @@ export async function handler(event: any) {
 
     const profile = await getUserProfile(userId);
     if (!profile?.householdId) {
-      return error(400, 'You are not part of a household');
+      return error(400, 'You are not part of a household', event);
     }
 
     const householdId = profile.householdId;
@@ -28,7 +28,7 @@ export async function handler(event: any) {
       const otherMembers = users.filter(u => u.PK !== `USER#${userId}`);
 
       if (admins.length === 1 && otherMembers.length > 0) {
-        return error(400, 'You are the only admin. Promote another member to admin before leaving, or remove all members first.');
+        return error(400, 'You are the only admin. Promote another member to admin before leaving, or remove all members first.', event);
       }
 
       // If user is last person, delete household data
@@ -87,9 +87,9 @@ export async function handler(event: any) {
       },
     }));
 
-    return success({ message: 'Left household' });
+    return success({ message: 'Left household' }, event);
   } catch (err) {
     console.error('Error leaving household:', err);
-    return error(500, 'Failed to leave household');
+    return error(500, 'Failed to leave household', event);
   }
 }

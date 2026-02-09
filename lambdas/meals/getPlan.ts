@@ -10,7 +10,7 @@ export async function handler(event: any) {
     try {
       householdId = await requireHouseholdId(userId);
     } catch {
-      return success({ plan: null });
+      return success({ plan: null }, event);
     }
 
     if (startDate) {
@@ -24,7 +24,7 @@ export async function handler(event: any) {
       }));
 
       if (!result.Item) {
-        return success({ plan: null });
+        return success({ plan: null }, event);
       }
 
       return success({
@@ -35,7 +35,7 @@ export async function handler(event: any) {
           generatedAt: result.Item.generatedAt,
           mealSuggestionMode: result.Item.mealSuggestionMode,
         },
-      });
+      }, event);
     }
 
     // Get most recent plan
@@ -51,7 +51,7 @@ export async function handler(event: any) {
     }));
 
     if (!result.Items || result.Items.length === 0) {
-      return success({ plan: null });
+      return success({ plan: null }, event);
     }
 
     const plan = result.Items[0];
@@ -63,9 +63,9 @@ export async function handler(event: any) {
         generatedAt: plan.generatedAt,
         mealSuggestionMode: plan.mealSuggestionMode,
       },
-    });
+    }, event);
   } catch (err) {
     console.error('Error getting plan:', err);
-    return error(500, 'Failed to get meal plan');
+    return error(500, 'Failed to get meal plan', event);
   }
 }

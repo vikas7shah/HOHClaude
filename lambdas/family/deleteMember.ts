@@ -6,7 +6,7 @@ export async function handler(event: any) {
     const memberId = event.pathParameters?.memberId;
 
     if (!memberId) {
-      return error(400, 'memberId is required');
+      return error(400, 'memberId is required', event);
     }
 
     // Require user to be in a household
@@ -14,7 +14,7 @@ export async function handler(event: any) {
     try {
       householdId = await requireHouseholdId(userId);
     } catch {
-      return error(400, 'You must be part of a household');
+      return error(400, 'You must be part of a household', event);
     }
 
     await docClient.send(new DeleteCommand({
@@ -25,9 +25,9 @@ export async function handler(event: any) {
       },
     }));
 
-    return success({ message: 'Family member removed' });
+    return success({ message: 'Family member removed' }, event);
   } catch (err) {
     console.error('Error deleting member:', err);
-    return error(500, 'Failed to delete family member');
+    return error(500, 'Failed to delete family member', event);
   }
 }

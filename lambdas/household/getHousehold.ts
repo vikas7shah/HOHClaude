@@ -8,7 +8,7 @@ export async function handler(event: any) {
     try {
       householdId = await requireHouseholdId(userId);
     } catch {
-      return success({ household: null });
+      return success({ household: null }, event);
     }
 
     // Get household info
@@ -21,7 +21,7 @@ export async function handler(event: any) {
     }));
 
     if (!householdResult.Item) {
-      return error(404, 'Household not found');
+      return error(404, 'Household not found', event);
     }
 
     // Get all users in household via GSI
@@ -49,9 +49,9 @@ export async function handler(event: any) {
         createdAt: householdResult.Item.createdAt,
         users,
       },
-    });
+    }, event);
   } catch (err) {
     console.error('Error getting household:', err);
-    return error(500, 'Failed to get household');
+    return error(500, 'Failed to get household', event);
   }
 }

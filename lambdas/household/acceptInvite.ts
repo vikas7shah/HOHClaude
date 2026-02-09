@@ -8,13 +8,13 @@ export async function handler(event: any) {
     const { householdId } = body;
 
     if (!householdId) {
-      return error(400, 'householdId is required');
+      return error(400, 'householdId is required', event);
     }
 
     // Check user isn't already in a household
     const existingProfile = await getUserProfile(userId);
     if (existingProfile?.householdId) {
-      return error(400, 'You are already part of a household. Leave it first to join another.');
+      return error(400, 'You are already part of a household. Leave it first to join another.', event);
     }
 
     // Check invite exists
@@ -27,7 +27,7 @@ export async function handler(event: any) {
     }));
 
     if (!inviteResult.Item) {
-      return error(404, 'Invite not found or expired');
+      return error(404, 'Invite not found or expired', event);
     }
 
     // Get household info
@@ -40,7 +40,7 @@ export async function handler(event: any) {
     }));
 
     if (!householdResult.Item) {
-      return error(404, 'Household no longer exists');
+      return error(404, 'Household no longer exists', event);
     }
 
     const now = new Date().toISOString();
@@ -78,9 +78,9 @@ export async function handler(event: any) {
         name: householdResult.Item.name,
         role: 'member',
       },
-    });
+    }, event);
   } catch (err) {
     console.error('Error accepting invite:', err);
-    return error(500, 'Failed to accept invite');
+    return error(500, 'Failed to accept invite', event);
   }
 }

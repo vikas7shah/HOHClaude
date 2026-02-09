@@ -9,13 +9,13 @@ export async function handler(event: any) {
     const { name } = body;
 
     if (!name) {
-      return error(400, 'Household name is required');
+      return error(400, 'Household name is required', event);
     }
 
     // Check if user already has a household
     const existingProfile = await getUserProfile(userId);
     if (existingProfile?.householdId) {
-      return error(400, 'You are already part of a household. Leave it first to create a new one.');
+      return error(400, 'You are already part of a household. Leave it first to create a new one.', event);
     }
 
     const householdId = randomUUID();
@@ -57,9 +57,9 @@ export async function handler(event: any) {
         name,
         role: 'admin',
       },
-    });
+    }, event);
   } catch (err) {
     console.error('Error creating household:', err);
-    return error(500, 'Failed to create household');
+    return error(500, 'Failed to create household', event);
   }
 }

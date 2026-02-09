@@ -9,15 +9,15 @@ export async function handler(event: any) {
     const { startDate, date, mealType, action, customMealName, forMemberId } = body;
 
     if (!startDate || !date || !mealType || !action) {
-      return error(400, 'startDate, date, mealType, and action are required');
+      return error(400, 'startDate, date, mealType, and action are required', event);
     }
 
     if (action !== 'swap' && action !== 'custom') {
-      return error(400, 'action must be "swap" or "custom"');
+      return error(400, 'action must be "swap" or "custom"', event);
     }
 
     if (action === 'custom' && !customMealName) {
-      return error(400, 'customMealName is required for custom action');
+      return error(400, 'customMealName is required for custom action', event);
     }
 
     // Require user to be in a household
@@ -25,7 +25,7 @@ export async function handler(event: any) {
     try {
       householdId = await requireHouseholdId(userId);
     } catch {
-      return error(400, 'You must be part of a household');
+      return error(400, 'You must be part of a household', event);
     }
 
     // Get the current meal plan
@@ -35,7 +35,7 @@ export async function handler(event: any) {
     }));
 
     if (!planResult.Item) {
-      return error(404, 'Meal plan not found');
+      return error(404, 'Meal plan not found', event);
     }
 
     const plan = planResult.Item;
@@ -49,7 +49,7 @@ export async function handler(event: any) {
     );
 
     if (mealIndex === -1) {
-      return error(404, 'Meal not found in plan');
+      return error(404, 'Meal not found in plan', event);
     }
 
     const currentMeal = meals[mealIndex];
@@ -102,7 +102,7 @@ export async function handler(event: any) {
         const alternatives = userMeals.filter(m => m !== currentMeal.recipeName);
 
         if (alternatives.length === 0) {
-          return error(404, `No other ${mealType} options in your preferences. Add more options in Household Settings or use "Enter My Own".`);
+          return error(404, `No other ${mealType} options in your preferences. Add more options in Household Settings or use "Enter My Own".`, event);
         }
 
         // Pick a random meal from user's preferences
@@ -195,7 +195,7 @@ export async function handler(event: any) {
         });
 
         if (!searchResults.results || searchResults.results.length === 0) {
-          return error(404, 'No alternative recipes found matching your dietary preferences');
+          return error(404, 'No alternative recipes found matching your dietary preferences', event);
         }
 
         // Pick a random recipe from results that's different from current
@@ -204,7 +204,7 @@ export async function handler(event: any) {
         );
 
         if (alternatives.length === 0) {
-          return error(404, 'No different recipes available');
+          return error(404, 'No different recipes available', event);
         }
 
         const newRecipe = alternatives[Math.floor(Math.random() * alternatives.length)];
@@ -242,15 +242,15 @@ export async function handler(event: any) {
     return success({
       message: action === 'custom' ? 'Meal updated with your custom choice' : 'Meal swapped successfully',
       meal: updatedMeal,
-    });
+    }, event);
   } catch (err: any) {
     console.error('Error updating meal:', err);
 
     // Check for Spoonacular quota exceeded (402)
     if (err.message?.includes('402')) {
-      return error(429, 'Daily recipe quota exceeded. Please try again tomorrow or use "Enter My Own" to add your custom meal.');
+      return error(429, 'Daily recipe quota exceeded. Please try again tomorrow or use "Enter My Own" to add your custom meal.', event);
     }
 
-    return error(500, 'Failed to update meal');
+    return error(500, 'Failed to update meal', event);
   }
 }

@@ -30,7 +30,7 @@ export async function handler(event: any) {
     const { startDate } = body; // YYYY-MM-DD format
 
     if (!startDate) {
-      return error(400, 'startDate is required (YYYY-MM-DD)');
+      return error(400, 'startDate is required (YYYY-MM-DD)', event);
     }
 
     // Require user to be in a household
@@ -38,7 +38,7 @@ export async function handler(event: any) {
     try {
       householdId = await requireHouseholdId(userId);
     } catch {
-      return error(400, 'You must be part of a household to generate meal plans');
+      return error(400, 'You must be part of a household to generate meal plans', event);
     }
 
     // Get household preferences
@@ -116,7 +116,7 @@ export async function handler(event: any) {
                                typicalSnacks.length > 0;
 
     if (mealSuggestionMode === 'user_preference' && !hasAnyTypicalMeals) {
-      return error(400, 'You have "My Preferences Only" mode selected but no typical meals saved. Please go to Household Settings and add your typical breakfast, lunch, dinner, or snack options first. Or switch to "AI Suggestions" mode.');
+      return error(400, 'You have "My Preferences Only" mode selected but no typical meals saved. Please go to Household Settings and add your typical breakfast, lunch, dinner, or snack options first. Or switch to "AI Suggestions" mode.', event);
     }
 
     // Only call Spoonacular API if mode is 'ai_suggest' or 'ai_and_user'
@@ -452,15 +452,15 @@ export async function handler(event: any) {
       endDate: endDate.toISOString().split('T')[0],
       meals,
       mealSuggestionMode,
-    });
+    }, event);
   } catch (err: any) {
     console.error('Error generating plan:', err);
 
     // Check for Spoonacular quota exceeded (402)
     if (err.message?.includes('402')) {
-      return error(429, 'Daily recipe quota exceeded. Please try again tomorrow or switch to "My Preferences Only" mode in Household Settings.');
+      return error(429, 'Daily recipe quota exceeded. Please try again tomorrow or switch to "My Preferences Only" mode in Household Settings.', event);
     }
 
-    return error(500, 'Failed to generate meal plan');
+    return error(500, 'Failed to generate meal plan', event);
   }
 }

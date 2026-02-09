@@ -9,7 +9,7 @@ export async function handler(event: any) {
     try {
       householdId = await requireHouseholdId(userId);
     } catch {
-      return success({ preferences: null });
+      return success({ preferences: null }, event);
     }
 
     const result = await docClient.send(new GetCommand({
@@ -34,7 +34,7 @@ export async function handler(event: any) {
           mealSuggestionMode: 'ai_and_user',
           additionalPreferences: '',
         },
-      });
+      }, event);
     }
 
     return success({
@@ -50,9 +50,9 @@ export async function handler(event: any) {
         mealSuggestionMode: result.Item.mealSuggestionMode || 'ai_and_user',
         additionalPreferences: result.Item.additionalPreferences || '',
       },
-    });
+    }, event);
   } catch (err) {
     console.error('Error getting preferences:', err);
-    return error(500, 'Failed to get preferences');
+    return error(500, 'Failed to get preferences', event);
   }
 }

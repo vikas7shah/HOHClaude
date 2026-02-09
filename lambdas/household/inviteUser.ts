@@ -7,16 +7,16 @@ export async function handler(event: any) {
     const { email } = body;
 
     if (!email) {
-      return error(400, 'Email is required');
+      return error(400, 'Email is required', event);
     }
 
     // Get current user's profile
     const profile = await getUserProfile(userId);
     if (!profile?.householdId) {
-      return error(400, 'You must be part of a household to invite users');
+      return error(400, 'You must be part of a household to invite users', event);
     }
     if (profile.role !== 'admin') {
-      return error(403, 'Only admins can invite users');
+      return error(403, 'Only admins can invite users', event);
     }
 
     const householdId = profile.householdId;
@@ -42,7 +42,7 @@ export async function handler(event: any) {
     }));
 
     if (existingInvite.Item) {
-      return error(400, 'Invite already sent to this email');
+      return error(400, 'Invite already sent to this email', event);
     }
 
     // Create invite
@@ -66,9 +66,9 @@ export async function handler(event: any) {
         email: email.toLowerCase(),
         householdName,
       },
-    });
+    }, event);
   } catch (err) {
     console.error('Error inviting user:', err);
-    return error(500, 'Failed to send invite');
+    return error(500, 'Failed to send invite', event);
   }
 }

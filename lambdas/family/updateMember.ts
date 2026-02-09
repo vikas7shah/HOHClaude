@@ -7,7 +7,7 @@ export async function handler(event: any) {
     const body = JSON.parse(event.body || '{}');
 
     if (!memberId) {
-      return error(400, 'memberId is required');
+      return error(400, 'memberId is required', event);
     }
 
     // Require user to be in a household
@@ -15,7 +15,7 @@ export async function handler(event: any) {
     try {
       householdId = await requireHouseholdId(userId);
     } catch {
-      return error(400, 'You must be part of a household to update family members');
+      return error(400, 'You must be part of a household to update family members', event);
     }
 
     // Fetch existing member to make sure it exists
@@ -28,13 +28,13 @@ export async function handler(event: any) {
     }));
 
     if (!existingResult.Item) {
-      return error(404, 'Family member not found');
+      return error(404, 'Family member not found', event);
     }
 
     const { name, age, dietaryRestrictions, allergies, likes, dislikes, sameAsAdults, mealPreferences } = body;
 
     if (!name) {
-      return error(400, 'name is required');
+      return error(400, 'name is required', event);
     }
 
     const sameAsAdultsValue = sameAsAdults !== undefined ? sameAsAdults : true;
@@ -79,9 +79,9 @@ export async function handler(event: any) {
         sameAsAdults: sameAsAdultsValue,
         mealPreferences: mealPrefsToStore,
       }
-    });
+    }, event);
   } catch (err) {
     console.error('Error updating member:', err);
-    return error(500, 'Failed to update family member');
+    return error(500, 'Failed to update family member', event);
   }
 }

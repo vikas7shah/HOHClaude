@@ -10,7 +10,7 @@ export async function handler(event: any) {
     try {
       householdId = await requireHouseholdId(userId);
     } catch {
-      return error(400, 'You must be part of a household to set preferences');
+      return error(400, 'You must be part of a household to set preferences', event);
     }
 
     const {
@@ -55,9 +55,9 @@ export async function handler(event: any) {
       },
     }));
 
-    return success({ message: 'Preferences saved' });
+    return success({ message: 'Preferences saved' }, event);
   } catch (err) {
     console.error('Error updating preferences:', err);
-    return error(500, 'Failed to update preferences');
+    return error(500, 'Failed to update preferences', event);
   }
 }

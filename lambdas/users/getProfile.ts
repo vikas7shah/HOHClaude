@@ -26,7 +26,7 @@ export async function handler(event: any) {
         },
         household: null,
         hasHousehold: false,
-      });
+      }, event);
     }
 
     // If user has a household, get household info
@@ -59,9 +59,9 @@ export async function handler(event: any) {
       },
       household,
       hasHousehold: !!result.Item.householdId,
-    });
+    }, event);
   } catch (err) {
     console.error('Error getting profile:', err);
-    return error(500, 'Failed to get profile');
+    return error(500, 'Failed to get profile', event);
   }
 }

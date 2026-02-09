@@ -9,7 +9,7 @@ export async function handler(event: any) {
     try {
       householdId = await requireHouseholdId(userId);
     } catch {
-      return success({ members: [] }); // No household = no family members
+      return success({ members: [] }, event); // No household = no family members
     }
 
     const result = await docClient.send(new QueryCommand({
@@ -33,9 +33,9 @@ export async function handler(event: any) {
       mealPreferences: item.mealPreferences || null,
     }));
 
-    return success({ members });
+    return success({ members }, event);
   } catch (err) {
     console.error('Error getting family:', err);
-    return error(500, 'Failed to get family members');
+    return error(500, 'Failed to get family members', event);
   }
 }

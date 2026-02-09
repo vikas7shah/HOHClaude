@@ -11,13 +11,13 @@ export async function handler(event: any) {
     try {
       householdId = await requireHouseholdId(userId);
     } catch {
-      return error(400, 'You must be part of a household to add family members');
+      return error(400, 'You must be part of a household to add family members', event);
     }
 
     const { name, age, dietaryRestrictions, allergies, likes, dislikes, sameAsAdults, mealPreferences } = body;
 
     if (!name) {
-      return error(400, 'name is required');
+      return error(400, 'name is required', event);
     }
 
     const memberId = randomUUID();
@@ -61,9 +61,9 @@ export async function handler(event: any) {
         sameAsAdults: sameAsAdultsValue,
         mealPreferences: mealPrefsToStore,
       }
-    });
+    }, event);
   } catch (err) {
     console.error('Error adding member:', err);
-    return error(500, 'Failed to add family member');
+    return error(500, 'Failed to add family member', event);
   }
 }

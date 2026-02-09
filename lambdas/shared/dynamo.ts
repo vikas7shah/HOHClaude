@@ -44,24 +44,42 @@ export async function requireHouseholdId(userId: string): Promise<string> {
   return householdId;
 }
 
-// Response helpers
-export function success(body: any) {
+// Get allowed CORS origins from environment
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://www.homeoperationshub.com,https://homeoperationshub.com').split(',').filter(Boolean);
+
+// Helper to get the correct CORS origin header based on request origin
+export function getCorsOrigin(event?: any): string {
+  const requestOrigin = event?.headers?.origin || event?.headers?.Origin;
+
+  // If request origin is in our allowed list, return it
+  if (requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin)) {
+    return requestOrigin;
+  }
+
+  // Default to first allowed origin (production domain)
+  return ALLOWED_ORIGINS[0] || 'https://www.homeoperationshub.com';
+}
+
+// Response helpers with optional event parameter for CORS origin detection
+export function success(body: any, event?: any) {
   return {
     statusCode: 200,
     headers: {
       'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': getCorsOrigin(event),
+      'Access-Control-Allow-Credentials': 'true',
     },
     body: JSON.stringify(body),
   };
 }
 
-export function error(statusCode: number, message: string) {
+export function error(statusCode: number, message: string, event?: any) {
   return {
     statusCode,
     headers: {
       'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': getCorsOrigin(event),
+      'Access-Control-Allow-Credentials': 'true',
     },
     body: JSON.stringify({ error: message }),
   };

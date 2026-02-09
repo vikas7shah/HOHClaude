@@ -23,12 +23,24 @@ export class ApiStack extends cdk.Stack {
 
     const { userPool, usersTable, mealPlansTable } = props;
 
+    // Allowed origins for CORS - restrict to production domain only
+    const allowedOrigins = [
+      'https://www.homeoperationshub.com',
+      'https://homeoperationshub.com',
+    ];
+
+    // Add localhost for development if needed
+    if (process.env.NODE_ENV !== 'production') {
+      allowedOrigins.push('http://localhost:5173');
+      allowedOrigins.push('http://localhost:3000');
+    }
+
     // API Gateway
     this.api = new apigateway.RestApi(this, 'HohApi', {
       restApiName: 'HOH API',
       description: 'Home Operations Hub API',
       defaultCorsPreflightOptions: {
-        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowOrigins: allowedOrigins,
         allowMethods: apigateway.Cors.ALL_METHODS,
         allowHeaders: ['Content-Type', 'Authorization'],
       },
@@ -49,6 +61,7 @@ export class ApiStack extends cdk.Stack {
         USERS_TABLE: usersTable.tableName,
         MEAL_PLANS_TABLE: mealPlansTable.tableName,
         SPOONACULAR_API_KEY: process.env.SPOONACULAR_API_KEY || '',
+        ALLOWED_ORIGINS: allowedOrigins.join(','),
       },
       bundling: {
         minify: true,
