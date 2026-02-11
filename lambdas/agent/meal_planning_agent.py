@@ -510,7 +510,7 @@ def get_cors_origin(event: dict) -> str:
     return allowed_origins[0] if allowed_origins else 'https://www.homeoperationshub.com'
 
 
-def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
     Lambda handler for the Meal Agent API.
 

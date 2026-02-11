@@ -78,7 +78,9 @@ def search_recipes(
     exclude_ingredients: Optional[str] = None,
     meal_type: Optional[str] = None,
     max_ready_time: Optional[int] = None,
-    number: int = 10
+    number: int = 10,
+    offset: int = 0,
+    sort: Optional[str] = None
 ) -> dict:
     """Search for recipes based on various criteria.
 
@@ -94,6 +96,8 @@ def search_recipes(
         meal_type: Type of meal (e.g., "breakfast", "main course", "snack", "dessert", "soup", "salad")
         max_ready_time: Maximum cooking time in minutes
         number: Number of results to return (default 10, max 100)
+        offset: Number of results to skip for pagination (use to get different results each time)
+        sort: Sort order - use "random" to get varied results, "popularity", "healthiness", or "time"
 
     Returns:
         A dictionary containing:
@@ -122,6 +126,11 @@ def search_recipes(
             params['type'] = meal_type
         if max_ready_time:
             params['maxReadyTime'] = max_ready_time
+        if offset > 0:
+            params['offset'] = offset
+        if sort:
+            params['sort'] = sort
+            params['sortDirection'] = 'desc'
 
         with httpx.Client() as client:
             response = client.get(

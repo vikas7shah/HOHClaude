@@ -1,5 +1,56 @@
 import { useState, useEffect } from 'react';
-import { RefreshCw, ChevronLeft, ChevronRight, ExternalLink, User, Sparkles, AlertCircle, Baby, Users, AlertTriangle, Shuffle, Pencil, X, Check, Loader2 } from 'lucide-react';
+import { RefreshCw, ChevronLeft, ChevronRight, ExternalLink, User, Sparkles, AlertCircle, Baby, Users, AlertTriangle, Shuffle, Pencil, X, Check, Loader2, Coffee, Salad, UtensilsCrossed } from 'lucide-react';
+
+// Get meal-type specific styling for user meals without images
+const getMealPlaceholder = (mealType: string, recipeName: string) => {
+  // Determine emoji and colors based on meal type and keywords
+  const nameLower = recipeName.toLowerCase();
+
+  // Breakfast items
+  if (mealType === 'breakfast') {
+    if (nameLower.includes('egg')) return { emoji: '🍳', bg: 'from-yellow-100 to-orange-50', icon: Coffee };
+    if (nameLower.includes('oat') || nameLower.includes('cereal')) return { emoji: '🥣', bg: 'from-amber-100 to-yellow-50', icon: Coffee };
+    if (nameLower.includes('toast') || nameLower.includes('bread')) return { emoji: '🍞', bg: 'from-orange-100 to-amber-50', icon: Coffee };
+    if (nameLower.includes('fruit')) return { emoji: '🍎', bg: 'from-red-100 to-pink-50', icon: Coffee };
+    if (nameLower.includes('pancake') || nameLower.includes('waffle')) return { emoji: '🥞', bg: 'from-amber-100 to-yellow-50', icon: Coffee };
+    if (nameLower.includes('smoothie')) return { emoji: '🥤', bg: 'from-purple-100 to-pink-50', icon: Coffee };
+    if (nameLower.includes('yogurt')) return { emoji: '🥛', bg: 'from-blue-50 to-indigo-50', icon: Coffee };
+    if (nameLower.includes('cookie')) return { emoji: '🍪', bg: 'from-amber-100 to-orange-50', icon: Coffee };
+    return { emoji: '☀️', bg: 'from-yellow-100 to-orange-50', icon: Coffee };
+  }
+
+  // Lunch items
+  if (mealType === 'lunch') {
+    if (nameLower.includes('salad')) return { emoji: '🥗', bg: 'from-green-100 to-emerald-50', icon: Salad };
+    if (nameLower.includes('sandwich') || nameLower.includes('wrap')) return { emoji: '🥪', bg: 'from-amber-100 to-yellow-50', icon: Salad };
+    if (nameLower.includes('soup')) return { emoji: '🍲', bg: 'from-orange-100 to-red-50', icon: Salad };
+    if (nameLower.includes('rice')) return { emoji: '🍚', bg: 'from-slate-100 to-gray-50', icon: Salad };
+    if (nameLower.includes('pasta') || nameLower.includes('noodle')) return { emoji: '🍝', bg: 'from-yellow-100 to-orange-50', icon: Salad };
+    return { emoji: '🍽️', bg: 'from-green-100 to-teal-50', icon: Salad };
+  }
+
+  // Dinner items
+  if (mealType === 'dinner') {
+    if (nameLower.includes('chicken')) return { emoji: '🍗', bg: 'from-orange-100 to-amber-50', icon: UtensilsCrossed };
+    if (nameLower.includes('fish') || nameLower.includes('salmon')) return { emoji: '🐟', bg: 'from-blue-100 to-cyan-50', icon: UtensilsCrossed };
+    if (nameLower.includes('pasta') || nameLower.includes('spaghetti')) return { emoji: '🍝', bg: 'from-red-100 to-orange-50', icon: UtensilsCrossed };
+    if (nameLower.includes('pizza')) return { emoji: '🍕', bg: 'from-red-100 to-yellow-50', icon: UtensilsCrossed };
+    if (nameLower.includes('curry') || nameLower.includes('indian')) return { emoji: '🍛', bg: 'from-yellow-100 to-orange-50', icon: UtensilsCrossed };
+    if (nameLower.includes('steak') || nameLower.includes('beef')) return { emoji: '🥩', bg: 'from-red-100 to-rose-50', icon: UtensilsCrossed };
+    if (nameLower.includes('taco') || nameLower.includes('mexican')) return { emoji: '🌮', bg: 'from-yellow-100 to-orange-50', icon: UtensilsCrossed };
+    if (nameLower.includes('stir') || nameLower.includes('asian') || nameLower.includes('chinese')) return { emoji: '🥡', bg: 'from-red-100 to-orange-50', icon: UtensilsCrossed };
+    if (nameLower.includes('soup') || nameLower.includes('stew')) return { emoji: '🍲', bg: 'from-amber-100 to-orange-50', icon: UtensilsCrossed };
+    return { emoji: '🍽️', bg: 'from-indigo-100 to-purple-50', icon: UtensilsCrossed };
+  }
+
+  // Snacks
+  if (nameLower.includes('fruit')) return { emoji: '🍇', bg: 'from-purple-100 to-pink-50', icon: Coffee };
+  if (nameLower.includes('nuts') || nameLower.includes('almond')) return { emoji: '🥜', bg: 'from-amber-100 to-yellow-50', icon: Coffee };
+  if (nameLower.includes('cookie') || nameLower.includes('biscuit')) return { emoji: '🍪', bg: 'from-amber-100 to-orange-50', icon: Coffee };
+
+  // Default
+  return { emoji: '🍴', bg: 'from-slate-100 to-gray-50', icon: UtensilsCrossed };
+};
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -434,11 +485,16 @@ export function MealPlan() {
                                         }`}
                                       />
                                     ) : (
-                                      <div className={`w-full bg-gradient-to-br from-primary/10 to-primary/5 rounded mb-2 flex items-center justify-center ${
-                                        dayMeals.length > 1 ? 'h-14' : 'h-20'
-                                      }`}>
-                                        <User className={`text-primary/40 ${dayMeals.length > 1 ? 'h-6 w-6' : 'h-8 w-8'}`} />
-                                      </div>
+                                      (() => {
+                                        const placeholder = getMealPlaceholder(mealType, meal.recipeName);
+                                        return (
+                                          <div className={`w-full bg-gradient-to-br ${placeholder.bg} rounded mb-2 flex items-center justify-center ${
+                                            dayMeals.length > 1 ? 'h-14' : 'h-20'
+                                          }`}>
+                                            <span className={dayMeals.length > 1 ? 'text-2xl' : 'text-3xl'}>{placeholder.emoji}</span>
+                                          </div>
+                                        );
+                                      })()
                                     )}
                                     <p className={`font-medium line-clamp-2 ${
                                       dayMeals.length > 1 ? 'text-xs' : 'text-sm'
@@ -550,12 +606,17 @@ export function MealPlan() {
                   className="w-full h-48 object-cover rounded-lg"
                 />
               ) : (
-                <div className="w-full h-48 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg flex items-center justify-center">
-                  <div className="text-center">
-                    <User className="h-16 w-16 text-primary/30 mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Your saved meal</p>
-                  </div>
-                </div>
+                (() => {
+                  const placeholder = getMealPlaceholder(selectedMeal.mealType, selectedMeal.recipeName);
+                  return (
+                    <div className={`w-full h-48 bg-gradient-to-br ${placeholder.bg} rounded-lg flex items-center justify-center`}>
+                      <div className="text-center">
+                        <span className="text-6xl block mb-2">{placeholder.emoji}</span>
+                        <p className="text-sm text-muted-foreground">Your saved meal</p>
+                      </div>
+                    </div>
+                  );
+                })()
               )}
 
               {(selectedMeal.readyInMinutes || selectedMeal.servings) && (
